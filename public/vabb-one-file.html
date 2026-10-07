@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>VABB Runway Lab</title>
+<style>
+  :root {
+    --bg: #0c0d0e;
+    --fg: #e8e6e1;
+    --muted: #a3a69f;
+    --subtle: #6f736c;
+    --line: #2c2f31;
+    --card: #141618;
+    --accent: #8a9a8e;
+    --accent-fg: #101311;
+    --amber: #c4a574;
+    --danger: #9a4545;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+  #c { display: block; width: 100%; height: 100%; touch-action: none; }
+  button, a { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  #start, #help {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(12,13,14,.82); padding: 20px;
+  }
+  #help { display: none; z-index: 30; }
+  .card { width: min(560px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px 26px; }
+  .kicker { font-family: ui-monospace, Consolas, monospace; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); font-size: 11px; margin: 0; }
+  h1 { font-size: clamp(40px, 7vw, 60px); letter-spacing: -.04em; margin: 10px 0 8px; font-weight: 620; }
+  p { color: var(--muted); line-height: 1.5; font-size: 14px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .btn { border: 0; border-radius: 8px; height: 44px; padding: 0 16px; font-weight: 650; }
+  .btn.primary { background: var(--accent); color: var(--accent-fg); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); }
+  .linkish { background: none; border: 0; color: var(--subtle); padding: 0; text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
+  #hud {
+    position: fixed; z-index: 10; left: 12px; right: 12px; top: 12px;
+    display: none; gap: 8px; align-items: flex-start; pointer-events: none;
+  }
+  #hud > * { pointer-events: auto; }
+  .bar, .panel, #catalog {
+    background: rgba(12,13,14,.88); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .chip { background: #1b1e20; border: 1px solid var(--line); color: var(--fg); border-radius: 999px; height: 30px; padding: 0 10px; font-size: 12px; }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  #catalog {
+    width: min(280px, 42vw); max-height: min(58vh, 520px); overflow: auto; padding: 8px;
+    font-size: 12px;
+  }
+  #catalog h2, .panel h2 { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 4px 6px 8px; }
+  #catalog button {
+    display: block; width: 100%; text-align: left; background: transparent; border: 0;
+    color: var(--fg); padding: 7px 8px; border-radius: 6px;
+  }
+  #catalog button:hover, #catalog button.active { background: #1d211f; }
+  .panel {
+    position: fixed; z-index: 12; right: 12px; top: 64px; width: min(340px, calc(100% - 24px));
+    max-height: min(70vh, 640px); overflow: auto; padding: 14px 14px 16px; display: none;
+  }
+  .panel h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.02em; }
+  .panel .where { color: var(--amber); font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+  td { border-top: 1px solid var(--line); padding: 5px 0; vertical-align: top; }
+  td:first-child { color: var(--muted); width: 42%; }
+  #foot {
+    display: none; position: fixed; z-index: 10; left: 12px; right: 12px; bottom: 10px;
+    color: var(--subtle); font-size: 11px; font-family: ui-monospace, Consolas, monospace;
+  }
+  #cross {
+    display: none; position: fixed; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+    border: 1px solid rgba(232,230,225,.7); border-radius: 50%; z-index: 11; pointer-events: none;
+  }
+  #stick {
+    display: none; position: fixed; z-index: 14; left: 18px; bottom: 28px; width: 116px; height: 116px;
+    border-radius: 50%; border: 1px solid var(--line); background: rgba(12,13,14,.45); touch-action: none;
+  }
+  #knob { position: absolute; left: 38px; top: 38px; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); }
+  #loaderr { display: none; padding: 28px; max-width: 520px; }
+  @media (max-width: 800px) {
+    #catalog { display: none; }
+    #catalog.show { display: block; position: fixed; left: 12px; right: 12px; top: 108px; width: auto; z-index: 13; max-height: 46vh; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cross"></div>
+<div id="stick" aria-hidden="true"><div id="knob"></div></div>
+<div id="start">
+  <div class="card">
+    <p class="kicker">VABB · BOM · Mumbai</p>
+    <h1>Runway Lab</h1>
+    <p>Chhatrapati Shivaji Maharaj International Airport. Educational schematic of ICAO Annex 14 markings, lights and signs on published VABB dimensions. Not a photoreal twin. Not for real navigation.</p>
+    <div class="row">
+      <button class="btn primary" id="goInspect" type="button">Enter airfield</button>
+      <button class="btn ghost" id="goWalk" type="button">Walk mode</button>
+    </div>
+    <p><button class="linkish" id="openHelp" type="button">Briefing — Annex 14, dimensions, disclaimer</button></p>
+  </div>
+</div>
+<div id="help">
+  <div class="card">
+    <p class="kicker">Briefing</p>
+    <h1 style="font-size:32px">How to read this field</h1>
+    <p>This follows published VABB dimensions and ICAO Annex 14 Volume I (markings §5.2, lights §5.3, signs §5.4). It is a teaching schematic, not a chart, and it is not for real flight.</p>
+    <p>RWY 09/27 is 3448 × 60 m, heading 090/270. Displaced thresholds 142 m on 09 and 482 m on 27. CAT I approach on 09 (540 m), CAT II on 27 (900 m). RWY 14/32 is 2871 × 45 m, heading 135/315. Displaced 377 m on 14 and 260 m on 32. CAT I 740 m on 14, SALS 420 m on 32. PAPI 3.00° on 09, 27 and 14; 3.26° on 32.</p>
+    <p>1 world unit is 1 metre. +Y is up, −Z is north, +X is east. Click a marking, light or sign. In walk mode, click the picture to look, WASD to move, Shift to sprint, Q/E or Space/Ctrl for altitude, C to crouch, F for the nearest note.</p>
+    <button class="btn primary" id="closeHelp" type="button">Close</button>
+  </div>
+</div>
+<div id="hud">
+  <div>
+    <div class="bar" id="toolbar"></div>
+    <div id="catalog"></div>
+  </div>
+</div>
+<aside class="panel" id="panel"></aside>
+<div id="foot"></div>
+<p id="loaderr">The 3D library did not load. This one file needs internet once (three.js from jsDelivr). Reload, or open it from GitHub Pages rather than a locked-down browser.</p>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+if (!window.THREE) {
+  document.getElementById("start").style.display = "none";
+  document.getElementById("loaderr").style.display = "block";
+} else {
+main();
+}
+
+function main() {
+  const RWY = {
+    "0927": { id:"0927", pair:"09/27", length:3448, width:60, heading:90, cl:0.9, center:{x:0,z:0},
+      ends:{ "09":{name:"09",heading:90,displaced:142,sign:-1,cat:"CAT I",papi:3.00,als:540},
+             "27":{name:"27",heading:270,displaced:482,sign:1,cat:"CAT II",papi:3.00,als:900} } },
+    "1432": { id:"1432", pair:"14/32", length:2871, width:45, heading:135, cl:0.45, center:{x:-480,z:0},
+      ends:{ "14":{name:"14",heading:135,displaced:377,sign:-1,cat:"CAT I",papi:3.00,als:740},
+             "32":{name:"32",heading:315,displaced:260,sign:1,cat:"SALS",papi:3.26,als:420} } }
+  };
+  const hdg = (deg) => {
+    const h = deg * Math.PI / 180;
+    return { fx: Math.sin(h), fz: -Math.cos(h), rx: Math.cos(h), rz: Math.sin(h), yaw: -h };
+  };
+  const pos = (rwy, along, across, y) => {
+    const v = hdg(rwy.heading);
+    return new THREE.Vector3(
+      rwy.center.x + v.fx * along + v.rx * across,
+      y == null ? 0.22 : y,
+      rwy.center.z + v.fz * along + v.rz * across
+    );
+  };
+  const thrAlong = (rwy, name) => {
+    const e = rwy.ends[name];
+    return e.sign * (rwy.length / 2 - e.displaced);
+  };
+  const land = (e) => -e.sign;
+
+  const canvas = document.getElementById("c");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, logarithmicDepthBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.15, 25000);
+  scene.add(new THREE.HemisphereLight(0xc5d4e0, 0x3a4638, 1.05));
+  const sun = new THREE.DirectionalLight(0xfff4e4, 1.25);
+  sun.position.set(-400, 800, 200);
+  scene.add(sun);
+  const markings = new THREE.Group();
+  const lights = new THREE.Group();
+  const signs = new THREE.Group();
+  const buildings = new THREE.Group();
+  scene.add(markings, lights, signs, buildings);
+  const pick = [];
+  const features = [];
+  const papis = [];
+  const flashers = [];
+
+  const white = 0xf4f1ea, yellow = 0xd6b24a, asphalt = 0x34383c;
+  function mat(color, basic) {
+    return basic
+      ? new THREE.MeshBasicMaterial({ color })
+      : new THREE.MeshStandardMaterial({ color, roughness: 0.92, metalness: 0 });
+  }
+  function addBox(parent, w, h, d, x, y, z, color, basic, ry) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, basic));
+    m.position.set(x, y, z);
+    if (ry) m.rotation.y = ry;
+    parent.add(m);
+    return m;
+  }
+  function paint(rwy, along, across, alongLen, acrossW, color, parent, feat) {
+    const p = pos(rwy, along, across, 0.28);
+    const m = addBox(parent || markings, acrossW, 0.06, alongLen, p.x, p.y, p.z, color, true, hdg(rwy.heading).yaw);
+    if (feat) tag(m, feat, p, alongLen, acrossW, rwy.heading);
+    return m;
+  }
+  function tag(mesh, feat, p, len, wid, heading) {
+    feat.pos = p.clone();
+    feat.len = len;
+    feat.wid = wid;
+    feat.heading = heading;
+    mesh.userData.feat = feat;
+    pick.push(mesh);
+    if (!features.includes(feat)) features.push(feat);
+  }
+  function F(partial) {
+    return Object.assign({ layer: "markings" }, partial);
+  }
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(9000, 7000),
+    new THREE.MeshStandardMaterial({ color: 0x1c241c, roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.2;
+  scene.add(ground);
+
+  function buildRunway(rwy) {
+    const c = pos(rwy, 0, 0, 0.08);
+    const slab = addBox(markings, rwy.width + 8, 0.2, rwy.length, c.x, 0.08, c.z, asphalt, false, hdg(rwy.heading).yaw);
+    tag(slab, F({
+      id: "pave-" + rwy.id, title: "Runway " + rwy.pair + " pavement",
+      where: "VABB " + rwy.pair, layer: "markings",
+      purpose: "The paved landing and take-off strip in this schematic.",
+      icao: "Annex 14 §3.1, §5.2",
+      dims: [["Length", rwy.length + " m"], ["Width", rwy.width + " m"], ["Heading", rwy.heading + "° / " + ((rwy.heading + 180) % 360) + "°"]],
+      vabb: rwy.pair === "09/27"
+        ? "Published 3448 × 60 m. Displaced thresholds 142 m (09) and 482 m (27)."
+        : "Published 2871 × 45 m. Displaced thresholds 377 m (14) and 260 m (32)."
+    }), c, rwy.length, rwy.width, rwy.heading);
+
+    const cl = F({
+      id: "cl-" + rwy.id, title: "Runway centreline " + rwy.pair,
+      where: "Along " + rwy.pair, layer: "markings",
+      purpose: "Gives the pilot the middle of the runway in poor visibility.",
+      icao: "Annex 14 §5.2.3",
+      dims: [["Stripe", "30 m"], ["Gap", "20 m"], ["Width", rwy.cl + " m"]],
+      vabb: "Stripes run the paved length, including the displaced portions in this lab."
+    });
+    let a = -rwy.length / 2 + 5;
+    while (a + 30 <= rwy.length / 2 - 5) {
+      paint(rwy, a + 15, 0, 30, rwy.cl, white, markings, cl);
+      a += 50;
+    }
+
+    const edge = rwy.width / 2 - 0.9;
+    const side = F({
+      id: "side-" + rwy.id, title: "Side stripes " + rwy.pair,
+      where: "Both edges of " + rwy.pair, layer: "markings",
+      purpose: "Shows the edges of the paved runway, especially when the shoulder looks similar.",
+      icao: "Annex 14 §5.2.5",
+      dims: [["Width", "0.9 m"], ["Runway width", rwy.width + " m"]],
+      vabb: "Continuous edge lines on both runways in this schematic."
+    });
+    paint(rwy, 0, edge, rwy.length - 4, 0.9, white, markings, side);
+    paint(rwy, 0, -edge, rwy.length - 4, 0.9, white, markings, side);
+
+    Object.keys(rwy.ends).forEach((name) => endMarkings(rwy, name));
+    edgeLights(rwy);
+    centreLights(rwy);
+  }
+
+  function endMarkings(rwy, name) {
+    const e = rwy.ends[name];
+    const ls = land(e);
+    const thr = thrAlong(rwy, name);
+    const count = rwy.width >= 60 ? 16 : 12;
+    const zebraF = F({
+      id: "thr-" + name, title: "Threshold stripes " + name,
+      where: "RWY " + name + " threshold", layer: "markings",
+      purpose: "Marks the beginning of the usable landing distance.",
+      icao: "Annex 14 §5.2.4",
+      dims: [["Stripes", String(count)], ["Stripe", "30 × 1.8 m"], ["Starts", "6 m inside the threshold"]],
+      vabb: "Threshold " + name + " is displaced " + e.displaced + " m from the pavement end."
+    });
+    const pattern = (2 * count - 1) * 1.8;
+    for (let i = 0; i < count; i++) {
+      paint(rwy, thr + ls * 21, -pattern / 2 + 0.9 + i * 3.6, 30, 1.8, white, markings, zebraF);
+    }
+    paint(rwy, thr, 0, 1.8, rwy.width - 3, white, markings, zebraF);
+
+    const label = document.createElement("canvas");
+    label.width = 512; label.height = 256;
+    const g = label.getContext("2d");
+    g.clearRect(0, 0, 512, 256);
+    g.fillStyle = "#f4f1ea";
+    g.font = "700 200px ui-monospace, Consolas, monospace";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(name, 256, 136);
+    const tex = new THREE.CanvasTexture(label);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(28, 14), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    const dp = pos(rwy, thr + ls * 62, 0, 0.32);
+    plane.position.copy(dp);
+    plane.rotation.order = "YXZ";
+    plane.rotation.y = hdg(e.heading).yaw + Math.PI;
+    plane.rotation.x = -Math.PI / 2;
+    markings.add(plane);
+    tag(plane, F({
+      id: "des-" + name, title: "Designation " + name,
+      where: "Just inside threshold " + name, layer: "markings",
+      purpose: "Tells the pilot which runway end they are approaching. Read on the approach.",
+      icao: "Annex 14 §5.2.2",
+      dims: [["Numeral", name], ["Heading", e.heading + "° true"]],
+      vabb: e.cat + " end. Displaced threshold " + e.displaced + " m."
+    }), dp, 14, 28, e.heading);
+
+    if (name !== "32") {
+      const aim = F({
+        id: "aim-" + name, title: "Aiming point " + name,
+        where: "400 m inside threshold " + name, layer: "markings",
+        purpose: "Visual aim point for the touchdown zone on a long runway.",
+        icao: "Annex 14 §5.2.6",
+        dims: [["From threshold", "400 m"], ["Bars", "50 × 8 m"], ["Pair spacing", "about 26 m"]],
+        vabb: "Code 4 distance used for all precision ends in this lab."
+      });
+      paint(rwy, thr + ls * 425, 13, 50, 8, white, markings, aim);
+      paint(rwy, thr + ls * 425, -13, 50, 8, white, markings, aim);
+      const tdz = F({
+        id: "tdz-" + name, title: "Touchdown zone " + name,
+        where: "150–900 m inside threshold " + name, layer: "markings",
+        purpose: "Distance coding so the pilot can see how deep into the runway they are.",
+        icao: "Annex 14 §5.2.7",
+        dims: [["Pairs", "3, 2, then 1"], ["Spacing", "150 m"], ["Bar", "22.5 × 3 m"]],
+        vabb: "Drawn on 09, 27 and 14. Not on the SALS end 32."
+      });
+      const patternN = { 150: 3, 300: 2, 450: 1, 600: 1, 750: 1, 900: 1 };
+      [150, 300, 450, 600, 750, 900].forEach((dist) => {
+        for (let side = -1; side <= 1; side += 2) {
+          for (let k = 0; k < patternN[dist]; k++) {
+            paint(rwy, thr + ls * dist, side * (10.5 + k * 6), 22.5, 3, white, markings, tdz);
+          }
+        }
+      });
+    }
+
+    if (e.displaced >= 40) {
+      const arrows = F({
+        id: "arr-" + name, title: "Displaced-threshold arrows " + name,
+        where: "Unusable " + e.displaced + " m before threshold " + name, layer: "markings",
+        purpose: "Points at the real threshold. Do not land in the arrow area.",
+        icao: "Annex 14 §5.2.4.10",
+        dims: [["Displaced", e.displaced + " m"], ["Arrow spacing", "50 m"]],
+        vabb: name + " displacement is " + e.displaced + " m."
+      });
+      const phys = e.sign * (rwy.length / 2);
+      const dir = Math.sign(thr - phys) || ls;
+      for (let s = phys + dir * 36; dir > 0 ? s < thr - 24 : s > thr + 24; s += dir * 50) {
+        paint(rwy, s, 0, 16, 2, white, markings, arrows);
+        paint(rwy, s + dir * 10, 3.2, 8, 1.4, white, markings, arrows);
+        paint(rwy, s + dir * 10, -3.2, 8, 1.4, white, markings, arrows);
+      }
+    }
+
+    approachLights(rwy, name);
+    thresholdLights(rwy, name);
+    papi(rwy, name);
+  }
+
+  function lampMaterial(color) {
+    return new THREE.MeshBasicMaterial({ color });
+  }
+  function lamps(parent, positions, color, size, feat) {
+    if (!positions.length) return null;
+    const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(size, 6, 5), lampMaterial(color), positions.length);
+    const dummy = new THREE.Object3D();
+    positions.forEach((p, i) => {
+      dummy.position.copy(p);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    parent.add(mesh);
+    if (feat) tag(mesh, feat, positions[0], 4, 4, feat.heading || 90);
+    return mesh;
+  }
+
+  function edgeLights(rwy) {
+    const feat = F({
+      id: "edge-" + rwy.id, title: "Runway edge lights " + rwy.pair, layer: "lights",
+      where: "Both edges, about every 60 m",
+      purpose: "Outlines the runway at night. Amber in the last 600 m before each end.",
+      icao: "Annex 14 §5.3.9",
+      dims: [["Spacing", "60 m"], ["Amber zone", "600 m"], ["Height", "about 0.4 m"]],
+      vabb: "Bidirectional schematic: a light within 600 m of either pavement end is amber."
+    });
+    const whiteP = [], amberP = [];
+    for (let a = -rwy.length / 2; a <= rwy.length / 2; a += 60) {
+      const dEnd = Math.min(Math.abs(a - rwy.length / 2), Math.abs(a + rwy.length / 2));
+      const bucket = dEnd < 600 ? amberP : whiteP;
+      bucket.push(pos(rwy, a, rwy.width / 2 + 1.5, 0.45));
+      bucket.push(pos(rwy, a, -rwy.width / 2 - 1.5, 0.45));
+    }
+    feat.heading = rwy.heading;
+    lamps(lights, whiteP, 0xf4f1ea, 0.55, feat);
+    lamps(lights, amberP, 0xe0a040, 0.55, feat);
+  }
+
+  function centreLights(rwy) {
+    if (rwy.id !== "0927") return;
+    const feat = F({
+      id: "cll-0927", title: "Runway centreline lights 09/27", layer: "lights",
+      where: "Centreline, 15 m spacing",
+      purpose: "CAT II runway needs centreline lights. Colour warns how little pavement is left.",
+      icao: "Annex 14 §5.3.12",
+      dims: [["Spacing", "15 m"], ["Red", "last 300 m"], ["Alternate", "300–900 m"]],
+      vabb: "Coded from both thresholds so the pattern reads either way."
+    });
+    const groups = { white: [], red: [], mix: [] };
+    const t09 = thrAlong(rwy, "09"), t27 = thrAlong(rwy, "27");
+    for (let a = t09; a <= t27; a += 15) {
+      const d = Math.min(a - t09, t27 - a);
+      const key = d < 300 ? "red" : d < 900 ? "mix" : "white";
+      const col = key === "mix" && Math.floor(d / 15) % 2 ? "red" : key === "mix" ? "white" : key;
+      (col === "red" ? groups.red : groups.white).push(pos(rwy, a, 0, 0.36));
+    }
+    feat.heading = 90;
+    lamps(lights, groups.white, 0xf7f4ee, 0.38, feat);
+    lamps(lights, groups.red, 0xd24a3a, 0.38, feat);
+  }
+
+  function thresholdLights(rwy, name) {
+    const e = rwy.ends[name];
+    const thr = thrAlong(rwy, name);
+    const greens = [];
+    const half = Math.floor(rwy.width / 6);
+    for (let i = -half; i <= half; i++) greens.push(pos(rwy, thr, i * 3, 0.5));
+    lamps(lights, greens, 0x3dba6a, 0.48, F({
+      id: "gl-" + name, title: "Threshold lights " + name, layer: "lights",
+      where: "Across threshold " + name,
+      purpose: "Green, seen on approach, marks the threshold.",
+      icao: "Annex 14 §5.3.10",
+      dims: [["Colour", "green"], ["Across", rwy.width + " m"]],
+      vabb: "Placed on the displaced threshold, not the pavement end.",
+      heading: e.heading
+    }));
+    const phys = e.sign * (rwy.length / 2);
+    const reds = [];
+    for (let i = -half; i <= half; i++) reds.push(pos(rwy, phys, i * 3, 0.5));
+    lamps(lights, reds, 0xd24a3a, 0.48, F({
+      id: "end-" + name, title: "Runway end lights " + name, layer: "lights",
+      where: "Pavement extremity, " + name + " end",
+      purpose: "Red, facing the runway, marks the end. Do not confuse them with the green threshold.",
+      icao: "Annex 14 §5.3.11",
+      dims: [["Colour", "red"], ["From threshold", e.displaced + " m"]],
+      vabb: "The end is " + e.displaced + " m outside the " + name + " threshold because of the displacement.",
+      heading: e.heading
+    }));
+    if (name === "27") {
+      const reil = [];
+      [-1, 1].forEach((s) => {
+        const p = pos(rwy, thr, s * (rwy.width / 2 + 8), 0.8);
+        const m = addBox(lights, 0.7, 0.7, 0.7, p.x, p.y, p.z, 0xffffff, true);
+        reil.push(m);
+        tag(m, F({
+          id: "reil-27", title: "REIL threshold 27", layer: "lights",
+          where: "Either side of threshold 27",
+          purpose: "Runway end identifier lights. White flashers that make the threshold pop out of the city glow.",
+          icao: "Annex 14 §5.3.8",
+          dims: [["Colour", "white flashing"], ["Offset", "about 8 m outside the edge"]],
+          vabb: "Drawn only at threshold 27 in this lab."
+        }), p, 2, 2, 270);
+      });
+      flashers.push({ kind: "reil", meshes: reil });
+    }
+  }
+
+  function approachLights(rwy, name) {
+    const e = rwy.ends[name];
+    const ls = land(e);
+    const thr = thrAlong(rwy, name);
+    const out = -ls;
+    const pts = [];
+    const step = 30;
+    for (let d = step; d <= e.als; d += step) pts.push(pos(rwy, thr + out * d, 0, 1.2));
+    const title = name === "27" ? "CAT II approach lights 27"
+      : name === "09" ? "CAT I simple approach 09"
+      : name === "14" ? "CAT I approach lights 14"
+      : "SALS approach lights 32";
+    const feat = F({
+      id: "als-" + name, title, layer: "lights",
+      where: e.als + " m before threshold " + name,
+      purpose: name === "27"
+        ? "Centreline, 5-light barrettes in the inner section, a red side row, and a sequenced rabbit."
+        : "A row of white approach lights leading to the threshold, with a crossbar where the system is long enough.",
+      icao: "Annex 14 §5.3.4",
+      dims: [["Length", e.als + " m"], ["Spacing", "30 m"], ["Category", e.cat]],
+      vabb: name === "09" ? "09 is published as a 540 m simple approach in this lab."
+        : name === "27" ? "27 carries the 900 m CAT II system."
+        : name === "14" ? "14 is a 740 m CAT I system."
+        : "32 is a 420 m short approach (SALS).",
+      heading: e.heading
+    });
+    lamps(lights, pts, 0xf4f1ea, 0.42, feat);
+    if (e.als >= 300) {
+      const bar = [];
+      for (let x = -12; x <= 12; x += 3) bar.push(pos(rwy, thr + out * 300, x, 1.2));
+      lamps(lights, bar, 0xf4f1ea, 0.42, feat);
+    }
+    if (name === "27") {
+      const bars = [];
+      for (let d = 30; d <= 300; d += 30) {
+        for (let k = -2; k <= 2; k++) bars.push(pos(rwy, thr + out * d, k * 2.7, 1.15));
+      }
+      lamps(lights, bars, 0xf7f4ee, 0.36, feat);
+      const reds = [];
+      for (let d = 30; d <= 270; d += 30) {
+        reds.push(pos(rwy, thr + out * d, 10, 1.1));
+        reds.push(pos(rwy, thr + out * d, -10, 1.1));
+      }
+      lamps(lights, reds, 0xd24a3a, 0.4, feat);
+      const rabbits = [];
+      for (let d = 300; d <= 900; d += 60) {
+        const p = pos(rwy, thr + out * d, 0, 1.6);
+        rabbits.push(addBox(lights, 0.8, 0.8, 1.6, p.x, p.y, p.z, 0xffffff, true));
+      }
+      flashers.push({ kind: "rabbit", meshes: rabbits });
+      const tdzL = [];
+      for (let d = 30; d <= 900; d += 30) {
+        tdzL.push(pos(rwy, thr + ls * d, 11, 0.4));
+        tdzL.push(pos(rwy, thr + ls * d, -11, 0.4));
+      }
+      lamps(lights, tdzL, 0xf4f1ea, 0.32, F({
+        id: "tdzl-27", title: "TDZ lights RWY 27", layer: "lights",
+        where: "900 m inside threshold 27, either side of centreline",
+        purpose: "Touchdown zone lights. White pairs that fill the aiming area in CAT II weather.",
+        icao: "Annex 14 §5.3.13",
+        dims: [["Length", "900 m"], ["Spacing", "30 m"]],
+        vabb: "Only the CAT II end, runway 27.",
+        heading: 270
+      }));
+    }
+  }
+
+  function papiAngles(glide) {
+    const base = [2.5, 2.83, 3.17, 3.5];
+    const shift = glide - 3;
+    return base.map((a) => Math.round((a + shift) * 100) / 100);
+  }
+  function papi(rwy, name) {
+    const e = rwy.ends[name];
+    const thr = thrAlong(rwy, name);
+    const side = -(rwy.width / 2 + 15);
+    const units = [];
+    const angles = papiAngles(e.papi);
+    angles.forEach((ang, i) => {
+      const p = pos(rwy, thr - land(e) * 10, side - i * 9, 0.7);
+      const m = addBox(lights, 1.6, 0.7, 1.1, p.x, p.y, p.z, 0xffffff, true);
+      const feat = F({
+        id: "papi-" + name + "-" + (i + 1), title: "PAPI " + name + " unit " + (i + 1),
+        layer: "lights",
+        where: (15 + i * 9) + " m off the edge, threshold " + name,
+        purpose: "Precision approach path indicator. Two white and two red means you are on the published slope.",
+        icao: "Annex 14 §5.3.5",
+        dims: [["Unit", (i + 1) + " of 4"], ["Cut-off", ang.toFixed(2) + "°"], ["Glide path", e.papi.toFixed(2) + "°"], ["Spacing", "9 m"]],
+        vabb: "On slope is two white and two red. Above a unit's angle the lamp is white; below it, red.",
+        heading: e.heading
+      });
+      tag(m, feat, p, 2, 2, e.heading);
+      units.push({ mesh: m, ang, feat });
+    });
+    papis.push({ name, rwy, thr, units, glide: e.papi });
+  }
+
+  function taxi() {
+    const N = addBox(markings, 23, 0.18, 3440, 0, 0.06, -96, 0x3c4146, false);
+    const S = addBox(markings, 23, 0.18, 3280, 40, 0.06, 96, 0x3c4146, false);
+    const N1 = addBox(markings, 23, 0.18, 70, -1280, 0.07, -63, 0x3c4146, false);
+    tag(N, F({ id:"twy-n", title:"Taxiway N", layer:"markings", where:"North of RWY 09/27",
+      purpose:"Parallel taxiway ribbon north of 09/27.", icao:"Annex 14 §5.2.8",
+      dims:[["Width","23 m"],["Offset","96 m north"]], vabb:"Schematic ribbon, not the real fillet geometry." }), N.position, 3440, 23, 90);
+    tag(S, F({ id:"twy-s", title:"Taxiway S", layer:"markings", where:"South of RWY 09/27",
+      purpose:"Parallel taxiway ribbon south of 09/27, toward the terminal.", icao:"Annex 14 §5.2.8",
+      dims:[["Width","23 m"],["Offset","96 m south"]], vabb:"Schematic only." }), S.position, 3280, 23, 90);
+    tag(N1, F({ id:"twy-n1", title:"Taxiway N1", layer:"markings", where:"Connector at x = −1280 m",
+      purpose:"Link from taxiway N onto runway 09/27.", icao:"Annex 14 §5.2.8",
+      dims:[["Width","23 m"]], vabb:"Holding position sits before the runway." }), N1.position, 70, 23, 0);
+
+    const cl = F({ id:"tcl", title:"Taxiway centreline", layer:"markings", where:"N, S and N1",
+      purpose:"Yellow centreline through the taxiway.", icao:"Annex 14 §5.2.8.4",
+      dims:[["Width","0.15 m schematic"]], vabb:"One ribbon per taxiway." });
+    paint({ heading:90, center:{x:0,z:-96}, length:3400, width:23, cl:0.3 }, 0, 0, 3400, 0.3, yellow, markings, cl);
+    paint({ heading:90, center:{x:40,z:96}, length:3200, width:23, cl:0.3 }, 0, 0, 3200, 0.3, yellow, markings, cl);
+
+    const hold = F({ id:"hold", title:"Runway holding position", layer:"markings", where:"N1, about 90 m from 09/27 centreline",
+      purpose:"Where an aircraft must stop before entering the runway.", icao:"Annex 14 §5.2.10",
+      dims:[["Distance from centreline","90 m"],["Pattern","four yellow lines"]],
+      vabb:"CAT I geometry. A CAT II hold would sit further out." });
+    [-1.5, -0.45, 0.7, 1.7].forEach((zOff, i) => {
+      const m = addBox(markings, i < 2 ? 20 : 5, 0.05, 0.4, -1280, 0.32, -90 + zOff, yellow, true);
+      tag(m, hold, m.position, 20, 0.4, 90);
+    });
+
+    function twyLights(id, title, where, pts, color, note) {
+      lamps(lights, pts, color, 0.35, F({
+        id, title, where, layer: "lights", purpose: note, icao: "Annex 14 §5.3.17 / §5.3.18",
+        dims: [["Spacing", "30 m"]], vabb: "Schematic straight ribbons.", heading: 90
+      }));
+    }
+    const edgeN = [], clN = [], edgeS = [], clS = [];
+    for (let x = -1700; x <= 1700; x += 30) {
+      edgeN.push(new THREE.Vector3(x, 0.4, -108), new THREE.Vector3(x, 0.4, -84));
+      clN.push(new THREE.Vector3(x, 0.35, -96));
+    }
+    for (let x = -1560; x <= 1640; x += 30) {
+      edgeS.push(new THREE.Vector3(x, 0.4, 84), new THREE.Vector3(x, 0.4, 108));
+      clS.push(new THREE.Vector3(x, 0.35, 96));
+    }
+    twyLights("txe", "Taxiway edge lights", "N and S edges", edgeN.concat(edgeS), 0x3d7dff, "Blue edge lights outline the taxiway.");
+    twyLights("txc", "Taxiway centreline lights", "N and S centreline", clN.concat(clS), 0x3dba6a, "Green centreline lights lead along the taxi route.");
+
+    const wig = [];
+    [-6, 6].forEach((x) => {
+      const m = addBox(lights, 0.6, 0.8, 0.6, -1280 + x, 1.1, -90, 0xf0c040, true);
+      wig.push(m);
+      tag(m, F({
+        id: "wig", title: "Runway guard lights", layer: "lights", where: "Holding position N1",
+        purpose: "Yellow wig-wag pair. They flash alternately to say: runway ahead.",
+        icao: "Annex 14 §5.3.23",
+        dims: [["Colour", "yellow"], ["Pair", "alternating"]],
+        vabb: "At the N1 hold short of 09/27."
+      }), m.position, 3, 3, 0);
+    });
+    flashers.push({ kind: "wig", meshes: wig });
+  }
+
+  function signPlane(text, bg, fg, w, h) {
+    const c = document.createElement("canvas");
+    c.width = 512; c.height = 256;
+    const g = c.getContext("2d");
+    g.fillStyle = bg; g.fillRect(0, 0, 512, 256);
+    g.strokeStyle = fg; g.lineWidth = 18; g.strokeRect(12, 12, 488, 232);
+    g.fillStyle = fg;
+    g.font = "700 92px ui-monospace, Consolas, monospace";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(text, 256, 132);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+    return m;
+  }
+  function stand(mesh, x, y, z, ry, feat) {
+    mesh.position.set(x, y, z);
+    mesh.rotation.y = ry || 0;
+    signs.add(mesh);
+    tag(mesh, feat, mesh.position, wOf(mesh), 0.2, 90);
+  }
+  function wOf(mesh) { return mesh.geometry.parameters.width || 4; }
+
+  function placeSigns() {
+    stand(signPlane("09-27", "#8d2a2a", "#f4f1ea", 6.2, 3.1), -1296, 2.2, -98, 0, F({
+      id: "sg-0927", title: "Mandatory sign 09-27", layer: "signs", where: "N1 hold",
+      purpose: "Red sign with white legend. You need a clearance before you cross the holding position onto that runway.",
+      icao: "Annex 14 §5.4.2",
+      dims: [["Legend", "09-27"], ["Face", "red / white"]],
+      vabb: "Sited at the schematic N1 holding position."
+    }));
+    stand(signPlane("CAT II 27", "#8d2a2a", "#f4f1ea", 7.4, 3.1), 1180, 2.2, -78, Math.PI, F({
+      id: "sg-cat", title: "Mandatory sign CAT II 27", layer: "signs", where: "North shoulder near threshold 27",
+      purpose: "Marks the CAT II holding / sensitive area associated with runway 27.",
+      icao: "Annex 14 §5.4.2",
+      dims: [["Legend", "CAT II 27"]],
+      vabb: "27 is the CAT II end. 09 is CAT I."
+    }));
+    stand(signPlane("NO ENTRY", "#8d2a2a", "#f4f1ea", 7.2, 3.1), -1100, 2.2, 78, 0, F({
+      id: "sg-no", title: "Mandatory sign NO ENTRY", layer: "signs", where: "South taxiway, west side",
+      purpose: "Forbids entry. Used where a taxiway would take you the wrong way onto the runway.",
+      icao: "Annex 14 §5.4.2",
+      dims: [["Legend", "NO ENTRY"]],
+      vabb: "Teaching sign. Not a claim about a real VABB restriction at this coordinate."
+    }));
+    stand(signPlane("N1", "#111111", "#e2c14d", 3.6, 3.1), -1264, 2.2, -108, 0, F({
+      id: "sg-n1", title: "Location sign N1", layer: "signs", where: "Taxiway N1",
+      purpose: "Yellow legend on black. Tells you which taxiway you are on.",
+      icao: "Annex 14 §5.4.3",
+      dims: [["Legend", "N1"], ["Face", "yellow on black"]],
+      vabb: "Location sign beside the N1 connector."
+    }));
+    stand(signPlane("N \u2192", "#e2c14d", "#161616", 4.2, 3.1), -1320, 2.2, -108, 0, F({
+      id: "sg-dir-n", title: "Direction sign N", layer: "signs", where: "Junction N / N1",
+      purpose: "Black legend on yellow, with an arrow. Points along the named taxiway.",
+      icao: "Annex 14 §5.4.3",
+      dims: [["Legend", "N with arrow"]],
+      vabb: "Direction sign at the north/east junction of the schematic."
+    }));
+    stand(signPlane("E \u2192", "#e2c14d", "#161616", 4.2, 3.1), -1320, 2.2, -84, Math.PI / 2, F({
+      id: "sg-dir-e", title: "Direction sign E", layer: "signs", where: "Junction N / N1",
+      purpose: "Black on yellow direction sign for the eastbound taxiway.",
+      icao: "Annex 14 §5.4.3",
+      dims: [["Legend", "E with arrow"]],
+      vabb: "Paired with the N sign at the same junction."
+    }));
+
+    const rwy = RWY["0927"];
+    for (let n = 1; n <= 10; n++) {
+      const fromEast = n * 304.8;
+      const fromWest = n * 304.8;
+      const aEast = rwy.length / 2 - fromEast;
+      const aWest = -rwy.length / 2 + fromWest;
+      const board = (along, across, idNote) => {
+        const p = pos(rwy, along, across, 0.34);
+        const c = document.createElement("canvas");
+        c.width = 256; c.height = 256;
+        const g = c.getContext("2d");
+        g.fillStyle = "#111"; g.fillRect(0, 0, 256, 256);
+        g.fillStyle = "#f4f1ea";
+        g.font = "700 180px ui-monospace, Consolas, monospace";
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(String(n), 128, 136);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+        m.position.copy(p);
+        m.rotation.x = -Math.PI / 2;
+        signs.add(m);
+        tag(m, F({
+          id: "dist-" + idNote + "-" + n, title: "Distance remaining " + n,
+          layer: "signs", where: "RWY 09/27, " + n + " × 1000 ft from the far end",
+          purpose: "White numeral on a black square. Thousands of feet of runway still ahead.",
+          icao: "Annex 14 §5.2 / distance-remaining signs in §5.4 practice",
+          dims: [["Numeral", String(n)], ["Means", (n * 1000) + " ft"], ["Metres", fromEast.toFixed(0) + " m"]],
+          vabb: "Boards 10 down to 1. 1000 ft is 304.8 m. South row counts to the east end; north row counts to the west end."
+        }), p, 8, 8, 90);
+      };
+      if (Math.abs(aEast) < rwy.length / 2 - 20) board(aEast, 18, "e");
+      if (Math.abs(aWest) < rwy.length / 2 - 20) board(aWest, -18, "w");
+    }
+  }
+
+  function buildAirport() {
+    const term = addBox(buildings, 520, 22, 90, 180, 11, 230, 0x6e7570, false);
+    addBox(buildings, 280, 8, 36, 180, 26, 210, 0x8a928c, false);
+    addBox(buildings, 40, 16, 70, -40, 8, 170, 0x5c6560, false);
+    tag(term, F({
+      id: "t2", title: "Terminal massing", layer: "buildings", where: "South of RWY 09/27",
+      purpose: "A block standing in for the T2 terminal. Not the real facade.",
+      icao: "Not a marking. Context only.",
+      dims: [["Block", "520 × 90 × 22 m"]],
+      vabb: "Placed south of 09/27 so the runway stays the subject."
+    }), term.position, 520, 90, 90);
+
+    const shaft = addBox(buildings, 12, 58, 12, -460, 29, 150, 0x8d9390, false);
+    const cab = addBox(buildings, 22, 8, 22, -460, 62, 150, 0xd5d2cb, false);
+    tag(cab, F({
+      id: "twr", title: "Control tower", layer: "buildings", where: "South-west of the intersection",
+      purpose: "Visual reference for the tower. Cab height is schematic.",
+      icao: "Not a navaid.",
+      dims: [["Shaft", "58 m"]],
+      vabb: "Not surveyed to the real tower coordinate."
+    }), cab.position, 22, 22, 0);
+    tag(shaft, features[features.length - 1], shaft.position, 12, 12, 0);
+
+    [[860, 150], [980, 160], [1100, 145]].forEach((xz, i) => {
+      const h = addBox(buildings, 70, 16, 40, xz[0], 8, xz[1], 0x4e5552, false);
+      tag(h, F({
+        id: "hang-" + i, title: "Hangar " + (i + 1), layer: "buildings", where: "East apron",
+        purpose: "Block hangars so the apron has a scale reference.",
+        icao: "Context only.",
+        dims: [["Block", "70 × 40 × 16 m"]],
+        vabb: "Not individual real hangars."
+      }), h.position, 70, 40, 90);
+    });
+
+    [[-80, 130, 0.4], [40, 125, 1.2], [160, 134, 2.4]].forEach((j, i) => {
+      const g = new THREE.Group();
+      const fus = addBox(g, 6, 6, 42, 0, 5, 0, 0xd9d6cf, false);
+      addBox(g, 36, 1.2, 8, 0, 5.2, 2, 0xc5c2bb, false);
+      addBox(g, 10, 1, 8, 0, 5.4, -16, 0xc5c2bb, false);
+      addBox(g, 1.2, 8, 8, 0, 9, -18, 0xb7b4ae, false);
+      g.position.set(j[0], 0, j[1]);
+      g.rotation.y = j[2];
+      buildings.add(g);
+      tag(fus, F({
+        id: "jet-" + i, title: "Parked jet " + (i + 1), layer: "buildings", where: "South apron",
+        purpose: "Block aircraft for scale. Not a type-specific model.",
+        icao: "Context only.",
+        dims: [["Fuselage", "42 m"]],
+        vabb: "Three parked jets. No airline markings."
+      }), g.position, 42, 36, 0);
+    });
+
+    const pole = addBox(buildings, 0.4, 8, 0.4, -1500, 4, -70, 0x888880, false);
+    const sock = addBox(buildings, 1.2, 1.2, 6, -1496, 8, -70, 0xd07a2a, true);
+    sock.userData.sock = true;
+    tag(sock, F({
+      id: "sock", title: "Windsock", layer: "buildings", where: "Near threshold 09, north side",
+      purpose: "Shows wind direction at a glance. It swings slowly in this lab; it is not live weather.",
+      icao: "Annex 14 §5.1.1",
+      dims: [["Pole", "8 m"]],
+      vabb: "Sited beside the 09 threshold for the walk start."
+    }), sock.position, 6, 2, 90);
+    window.__sock = sock;
+    pole.userData.feat = sock.userData.feat;
+    pick.push(pole);
+  }
+
+  buildRunway(RWY["0927"]);
+  buildRunway(RWY["1432"]);
+  taxi();
+  placeSigns();
+  buildAirport();
+
+  const gizmo = new THREE.Group();
+  scene.add(gizmo);
+  const gMat = new THREE.LineBasicMaterial({ color: 0xc4a574 });
+  function showGizmo(feat) {
+    while (gizmo.children.length) gizmo.remove(gizmo.children[0]);
+    if (!feat || !feat.pos) return;
+    const v = hdg(feat.heading || 90);
+    const L = Math.max(feat.len || 8, 4), W = Math.max(feat.wid || 4, 2);
+    const c = feat.pos.clone(); c.y = 0.55;
+    const corners = [
+      [L / 2, W / 2], [L / 2, -W / 2], [-L / 2, -W / 2], [-L / 2, W / 2], [L / 2, W / 2]
+    ].map(([al, ac]) => new THREE.Vector3(c.x + v.fx * al + v.rx * ac, c.y, c.z + v.fz * al + v.rz * ac));
+    const geo = new THREE.BufferGeometry().setFromPoints(corners);
+    gizmo.add(new THREE.Line(geo, gMat));
+    const end = corners[0].clone();
+    const lab = signPlane(Math.round(L) + " m", "#1a140c", "#c4a574", Math.min(40, Math.max(8, L * 0.15)), 3);
+    lab.position.copy(end); lab.position.y = 2.2;
+    gizmo.add(lab);
+  }
+
+  const ray = new THREE.Raycaster();
+  let selected = null;
+  function select(feat) {
+    selected = feat || null;
+    showGizmo(feat);
+    const panel = document.getElementById("panel");
+    if (!feat) { panel.style.display = "none"; panel.innerHTML = ""; refreshCatalog(); return; }
+    panel.style.display = "block";
+    const rows = (feat.dims || []).map((d) => "<tr><td>" + d[0] + "</td><td>" + d[1] + "</td></tr>").join("");
+    panel.innerHTML = "<h3>" + feat.title + "</h3><div class='where'>" + feat.where + "</div><p>" + feat.purpose + "</p><table>" + rows + "</table><p><b>ICAO.</b> " + feat.icao + "</p><p><b>VABB.</b> " + feat.vabb + "</p><button class='linkish' id='clearSel' type='button'>Clear</button>";
+    document.getElementById("clearSel").onclick = () => select(null);
+    refreshCatalog();
+  }
+  function focusFeat(feat) {
+    select(feat);
+    if (!feat || !feat.pos) return;
+    if (mode === "walk") {
+      const v = hdg(feat.heading || 90);
+      camera.position.set(feat.pos.x - v.fx * 12, Math.max(feat.pos.y + 1.5, 1.7), feat.pos.z - v.fz * 12);
+      yaw = Math.atan2(-v.fx, -v.fz) * -1;
+      const look = feat.pos.clone();
+      yaw = Math.atan2(-(look.x - camera.position.x), -(look.z - camera.position.z));
+      pitch = -0.15;
+    } else {
+      target.copy(feat.pos);
+      oDist = Math.max(80, Math.min(900, (feat.len || 40) * 1.8));
+      updateInspect();
+    }
+  }
+
+  let mode = "inspect";
+  let yaw = -Math.PI / 2, pitch = -0.12, speed = 0, crouch = false;
+  const keys = Object.create(null);
+  const target = new THREE.Vector3(0, 0, 20);
+  let oYaw = 0.55, oPitch = 0.42, oDist = 780;
+  function updateInspect() {
+    const cp = Math.cos(oPitch);
+    camera.position.set(
+      target.x + Math.sin(oYaw) * cp * oDist,
+      target.y + Math.sin(oPitch) * oDist,
+      target.z + Math.cos(oYaw) * cp * oDist
+    );
+    camera.lookAt(target);
+  }
+  function enter(next) {
+    mode = next;
+    document.getElementById("start").style.display = "none";
+    document.getElementById("hud").style.display = "flex";
+    document.getElementById("foot").style.display = "block";
+    document.getElementById("cross").style.display = next === "walk" ? "block" : "none";
+    const touch = matchMedia("(pointer: coarse)").matches;
+    document.getElementById("stick").style.display = next === "walk" && touch ? "block" : "none";
+    if (next === "walk") {
+      const p = pos(RWY["0927"], thrAlong(RWY["0927"], "09"), 0, 1.7);
+      camera.position.copy(p);
+      yaw = -Math.PI / 2;
+      pitch = -0.08;
+      crouch = false;
+    } else updateInspect();
+    foot();
+  }
+
+  const pressed = (name) => !!keys[name];
+  function foot() {
+    const eye = camera.position.y.toFixed(1);
+    document.getElementById("foot").textContent = mode === "walk"
+      ? "Walk  WASD move   Shift sprint   click look   Q/E altitude   Space up   Ctrl down   C crouch   F nearest   eye " + eye + " m"
+      : "Inspect  drag orbit   scroll zoom   click a marking, light or sign";
+  }
+
+  const layers = { markings: true, lights: true, signs: true, buildings: true };
+  function applyLayers() {
+    markings.visible = layers.markings;
+    lights.visible = layers.lights;
+    signs.visible = layers.signs;
+    buildings.visible = layers.buildings;
+  }
+  function refreshCatalog() {
+    const box = document.getElementById("catalog");
+    const seen = new Set();
+    const items = features.filter((f) => {
+      if (seen.has(f.id) || !layers[f.layer]) return false;
+      seen.add(f.id); return true;
+    });
+    box.innerHTML = "<h2>Catalog</h2>" + items.map((f) =>
+      "<button type='button' data-id='" + f.id + "' class='" + (selected && selected.id === f.id ? "active" : "") + "'>" + f.title + "</button>"
+    ).join("");
+    box.querySelectorAll("button").forEach((b) => {
+      b.onclick = () => {
+        const f = features.find((x) => x.id === b.dataset.id);
+        focusFeat(f);
+      };
+    });
+  }
+  function toolbar() {
+    const bar = document.getElementById("toolbar");
+    const chips = [
+      ["mode", mode === "walk" ? "Walk" : "Inspect"],
+      ["day", "Day"], ["dusk", "Dusk"], ["night", "Night"],
+      ["markings", "Markings"], ["lights", "Lights"], ["signs", "Signs"], ["buildings", "Buildings"],
+      ["help", "Briefing"], ["list", "Catalog"]
+    ];
+    bar.innerHTML = chips.map((c) => "<button class='chip' data-k='" + c[0] + "' type='button'>" + c[1] + "</button>").join("");
+    const setOn = () => {
+      bar.querySelectorAll(".chip").forEach((el) => {
+        const k = el.dataset.k;
+        const on = k === "mode" || k === lightName || (k in layers && layers[k]);
+        el.classList.toggle("on", !!on);
+      });
+    };
+    bar.onclick = (ev) => {
+      const k = ev.target.dataset && ev.target.dataset.k;
+      if (!k) return;
+      if (k === "mode") enter(mode === "walk" ? "inspect" : "walk");
+      else if (k === "day" || k === "dusk" || k === "night") setLight(k);
+      else if (k in layers) { layers[k] = !layers[k]; applyLayers(); refreshCatalog(); }
+      else if (k === "help") document.getElementById("help").style.display = "flex";
+      else if (k === "list") document.getElementById("catalog").classList.toggle("show");
+      setOn();
+    };
+    setOn();
+  }
+
+  let lightName = "day";
+  function setLight(name) {
+    lightName = name;
+    const map = {
+      day:  { bg: 0x8ea4b5, hemi: 1.05, sun: 1.25, sunC: 0xfff4e4, fog: 0.00018 },
+      dusk: { bg: 0x6a4638, hemi: 0.45, sun: 0.55, sunC: 0xffb07a, fog: 0.00022 },
+      night:{ bg: 0x07090d, hemi: 0.18, sun: 0.04, sunC: 0x9bb4d0, fog: 0.00035 }
+    }[name];
+    scene.background = new THREE.Color(map.bg);
+    scene.fog = new THREE.FogExp2(map.bg, map.fog);
+    scene.children.find((o) => o.isHemisphereLight).intensity = map.hemi;
+    sun.intensity = map.sun;
+    sun.color.setHex(map.sunC);
+    toolbar();
+  }
+
+  const norm = (code) => {
+    const s = String(code).toLowerCase();
+    if (s === "keyw" || s === "w" || s === "arrowup") return "w";
+    if (s === "keys" || s === "s" || s === "arrowdown") return "s";
+    if (s === "keya" || s === "a" || s === "arrowleft") return "a";
+    if (s === "keyd" || s === "d" || s === "arrowright") return "d";
+    if (s === "shift" || s === "shiftleft" || s === "shiftright") return "shift";
+    if (s === "keyq" || s === "q") return "q";
+    if (s === "keye" || s === "e") return "e";
+    if (s === "space") return "space";
+    if (s === "control" || s === "controlleft" || s === "ctrl") return "ctrl";
+    if (s === "keyc" || s === "c") return "c";
+    if (s === "keyf" || s === "f") return "f";
+    return s;
+  };
+  addEventListener("keydown", (e) => {
+    const k = norm(e.code === "Space" ? "space" : e.key);
+    keys[k] = true;
+    if (k === "c" && mode === "walk") {
+      crouch = !crouch;
+      camera.position.y = Math.max(0.6, camera.position.y + (crouch ? -0.65 : 0.65));
+    }
+    if (k === "f") {
+      let best = null, bd = 1e9;
+      features.forEach((f) => {
+        if (!f.pos || !layers[f.layer]) return;
+        const d = camera.position.distanceTo(f.pos);
+        if (d < bd) { bd = d; best = f; }
+      });
+      if (best) focusFeat(best);
+    }
+    if (["Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
+  });
+  addEventListener("keyup", (e) => { keys[norm(e.code === "Space" ? "space" : e.key)] = false; });
+
+  window.__controlsTest = {
+    getYaw: () => yaw,
+    getSpeed: () => speed,
+    setKeys: (next) => {
+      Object.keys(keys).forEach((k) => delete keys[k]);
+      if (!next) return;
+      if (typeof next === "string") next.split(/[+, ]+/).forEach((p) => { if (p) keys[norm(p)] = true; });
+      else Object.keys(next).forEach((k) => { if (next[k]) keys[norm(k)] = true; });
+    }
+  };
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    if (document.getElementById("start").style.display !== "none") return;
+    drag = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId };
+    if (mode === "walk" && !matchMedia("(pointer: coarse)").matches) canvas.requestPointerLock();
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.hypot(dx, dy) > 4) drag.moved = true;
+    if (mode === "inspect" && e.buttons === 1) {
+      oYaw -= dx * 0.005;
+      oPitch = Math.max(0.08, Math.min(1.15, oPitch - dy * 0.003));
+      drag.x = e.clientX; drag.y = e.clientY;
+      updateInspect();
+    }
+  });
+  addEventListener("mousemove", (e) => {
+    if (mode !== "walk" || document.pointerLockElement !== canvas) return;
+    yaw -= e.movementX * 0.0022;
+    pitch = Math.max(-1.15, Math.min(1.15, pitch - e.movementY * 0.002));
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const click = !drag.moved;
+    drag = null;
+    if (!click) return;
+    const rect = canvas.getBoundingClientRect();
+    const locked = document.pointerLockElement === canvas;
+    const ndc = locked ? new THREE.Vector2(0, 0) : new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    ray.setFromCamera(ndc, camera);
+    const hits = ray.intersectObjects(pick.filter((m) => m.visible && (!m.parent || m.parent.visible)), false);
+    if (hits[0] && hits[0].object.userData.feat) select(hits[0].object.userData.feat);
+  });
+  canvas.addEventListener("wheel", (e) => {
+    if (mode !== "inspect") return;
+    e.preventDefault();
+    oDist = Math.max(25, Math.min(6000, oDist * (1 + Math.sign(e.deltaY) * 0.08)));
+    updateInspect();
+  }, { passive: false });
+
+  const stick = document.getElementById("stick");
+  const knob = document.getElementById("knob");
+  let joy = null, look = null;
+  stick.addEventListener("pointerdown", (e) => {
+    joy = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    stick.setPointerCapture(e.pointerId);
+  });
+  stick.addEventListener("pointermove", (e) => {
+    if (!joy || e.pointerId !== joy.id) return;
+    const dx = Math.max(-40, Math.min(40, e.clientX - joy.x));
+    const dy = Math.max(-40, Math.min(40, e.clientY - joy.y));
+    knob.style.left = (38 + dx) + "px";
+    knob.style.top = (38 + dy) + "px";
+    keys.a = dx < -12; keys.d = dx > 12; keys.w = dy < -12; keys.s = dy > 12;
+  });
+  const joyEnd = () => {
+    joy = null; keys.a = keys.d = keys.w = keys.s = false;
+    knob.style.left = "38px"; knob.style.top = "38px";
+  };
+  stick.addEventListener("pointerup", joyEnd);
+  stick.addEventListener("pointercancel", joyEnd);
+  canvas.addEventListener("pointerdown", (e) => {
+    if (!matchMedia("(pointer: coarse)").matches || mode !== "walk") return;
+    if (e.clientX < innerWidth * 0.45) return;
+    look = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!look || e.pointerId !== look.id) return;
+    yaw -= (e.clientX - look.x) * 0.005;
+    pitch = Math.max(-1.15, Math.min(1.15, pitch - (e.clientY - look.y) * 0.004));
+    look.x = e.clientX; look.y = e.clientY;
+  });
+  canvas.addEventListener("pointerup", (e) => { if (look && e.pointerId === look.id) look = null; });
+
+  document.getElementById("goInspect").onclick = () => enter("inspect");
+  document.getElementById("goWalk").onclick = () => enter("walk");
+  document.getElementById("openHelp").onclick = () => { document.getElementById("help").style.display = "flex"; };
+  document.getElementById("closeHelp").onclick = () => { document.getElementById("help").style.display = "none"; };
+
+  addEventListener("resize", () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  setLight("day");
+  applyLayers();
+  refreshCatalog();
+  updateInspect();
+  toolbar();
+
+  const clock = new THREE.Clock();
+  function frame() {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    if (mode === "walk" && document.getElementById("start").style.display === "none") {
+      const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+      const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      let mx = 0, mz = 0;
+      if (pressed("w")) { mx += fx; mz += fz; }
+      if (pressed("s")) { mx -= fx; mz -= fz; }
+      if (pressed("d")) { mx += rx; mz += rz; }
+      if (pressed("a")) { mx -= rx; mz -= rz; }
+      const mag = Math.hypot(mx, mz);
+      const sp = pressed("shift") ? 42 : 14;
+      if (mag > 0) {
+        camera.position.x += (mx / mag) * sp * dt;
+        camera.position.z += (mz / mag) * sp * dt;
+        speed = sp;
+      } else speed = 0;
+      let vy = 0;
+      if (pressed("q") || pressed("space")) vy += 1;
+      if (pressed("e") || pressed("ctrl")) vy -= 1;
+      if (vy) camera.position.y = Math.max(0.45, camera.position.y + vy * 14 * dt);
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+      camera.rotation.z = 0;
+    }
+    const t = clock.elapsedTime;
+    papis.forEach((sys) => {
+      const e = sys.rwy.ends[sys.name];
+      const v = hdg(e.heading);
+      const dx = camera.position.x - sys.units[0].mesh.position.x;
+      const dz = camera.position.z - sys.units[0].mesh.position.z;
+      const approach = -(dx * v.fx + dz * v.fz);
+      const elev = Math.atan2(camera.position.y - 0.7, Math.max(approach, 8)) * 180 / Math.PI;
+      sys.units.forEach((u) => {
+        const on = approach > 5 && elev >= u.ang;
+        u.mesh.material.color.setHex(on ? 0xf4f1ea : 0xd24a3a);
+        u.feat.vabb = "Eye elevation " + elev.toFixed(2) + "° against a " + sys.glide.toFixed(2) + "° path. This unit turns white above " + u.ang.toFixed(2) + "°. On slope is two white and two red.";
+      });
+    });
+    flashers.forEach((f) => {
+      if (f.kind === "reil") f.meshes.forEach((m) => { m.visible = Math.sin(t * 10) > 0; });
+      if (f.kind === "wig") f.meshes.forEach((m, i) => { m.visible = Math.floor(t * 2) % 2 === i; });
+      if (f.kind === "rabbit") {
+        const n = f.meshes.length;
+        const k = Math.floor(t * 8) % (n + 3);
+        f.meshes.forEach((m, i) => { m.scale.setScalar(i === k ? 2.4 : 0.7); });
+      }
+    });
+    if (window.__sock) window.__sock.rotation.y = Math.sin(t * 0.4) * 0.8;
+    if (mode === "walk" && (Math.floor(t * 4) !== Math.floor((t - dt) * 4))) foot();
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+</script>
+</body>
+</html>

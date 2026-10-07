@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0c0d0e;
+  --color-surface: #141516;
+  --color-surface-2: #1c1e20;
+  --color-fg: #e8e6e1;
+  --color-muted: #8f918c;
+  --color-subtle: #6a6c68;
+  --color-border: #2c2e30;
+  --color-accent: #d6d9d2;
+  --color-accent-fg: #0c0d0e;
+  --color-ink: #0c0d0e;
+  --color-panel: #101112;
+  --color-ok: #7d9a7a;
+  --color-warn: #c4a574;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

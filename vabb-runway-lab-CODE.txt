@@ -1,0 +1,3208 @@
+VABB RUNWAY LAB — FULL SOURCE
+
+
+================================================================================
+FILE: package.json
+================================================================================
+
+{
+  "name": "app-builder-workspace",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "overrides": {
+    "nf3": "0.3.17"
+  },
+  "scripts": {
+    "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
+    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
+    "db:migrate": "node scripts/migrate.mjs",
+    "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
+    "preview": "node scripts/with-app-env.mjs vite preview",
+    "preview:restart": "node scripts/preview.mjs restart",
+    "preview:stop": "node scripts/preview.mjs stop",
+    "typecheck": "tsc --noEmit",
+    "check:auth": "node scripts/check-auth-invariant.mjs",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@hookform/resolvers": "^5.7.0",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-radio-group": "^1.3.8",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-toggle": "^1.1.10",
+    "@radix-ui/react-toggle-group": "^1.1.11",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-router": "^1.170.0",
+    "@tanstack/react-start": "^1.168.0",
+    "@tanstack/react-table": "^8.21.0",
+    "@tanstack/router-plugin": "^1.168.0",
+    "better-auth": "~1.6.30",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.0.0",
+    "jose": "6.2.9",
+    "kysely": "^0.28.5",
+    "lucide-react": "^0.510.0",
+    "pg": "^8.16.3",
+    "react": "^19.2.0",
+    "react-day-picker": "^9.14.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.54.0",
+    "react-resizable-panels": "^4.6.5",
+    "recharts": "^2.13.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.3.0",
+    "three": "^0.186.0",
+    "tw-animate-css": "^1.3.4",
+    "vaul": "^1.1.2",
+    "zod": "^4.4.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^22.16.5",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "eslint": "^9.20.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.6",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^15.15.0",
+    "lightningcss": "^1.28.0",
+    "nitro": "3.0.260610-beta",
+    "playwright": "^1.62.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^8.2.0"
+  }
+}
+
+
+================================================================================
+FILE: src/routes/index.tsx
+================================================================================
+
+import { createFileRoute } from "@tanstack/react-router";
+import { LabApp } from "@/lab/App";
+
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  return <LabApp />;
+}
+
+
+================================================================================
+FILE: src/routes/__root.tsx
+================================================================================
+
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { AuthProvider } from "@/lib/auth/provider";
+import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import appCss from "../styles.css?url";
+
+const APP_NAME = "VABB Runway Lab";
+
+export const Route = createRootRoute({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: APP_NAME },
+      {
+        name: "description",
+        content:
+          "Educational 3D schematic of Chhatrapati Shivaji Maharaj International Airport (VABB / BOM). ICAO Annex 14 runway markings, lights, and signs. Not for real navigation.",
+      },
+      { name: "theme-color", content: "#0c0d0e" },
+    ],
+    links: [
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
+    ],
+  }),
+  component: () => (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <HeadContent />
+      </head>
+      <body className="bg-bg text-fg antialiased">
+        <PreviewHostBridge />
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+        <Scripts />
+      </body>
+    </html>
+  ),
+});
+
+
+================================================================================
+FILE: src/styles.css
+================================================================================
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0c0d0e;
+  --color-surface: #141516;
+  --color-surface-2: #1c1e20;
+  --color-fg: #e8e6e1;
+  --color-muted: #8f918c;
+  --color-subtle: #6a6c68;
+  --color-border: #2c2e30;
+  --color-accent: #d6d9d2;
+  --color-accent-fg: #0c0d0e;
+  --color-ink: #0c0d0e;
+  --color-panel: #101112;
+  --color-ok: #7d9a7a;
+  --color-warn: #c4a574;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+================================================================================
+FILE: src/lab/world.ts
+================================================================================
+
+/** VABB schematic world: 1 unit = 1 metre, +Y up, −Z north, +X east. */
+
+export const WORLD = {
+  north: -1 as const,
+  unit: "m" as const,
+};
+
+export type RwyId = "0927" | "1432";
+export type EndId = "09" | "27" | "14" | "32";
+
+export type RunwayDef = {
+  id: RwyId;
+  pair: string;
+  length: number;
+  width: number;
+  /** True heading of the first-named end (09 or 14). +along follows this heading. */
+  heading: number;
+  clWidth: number;
+  center: { x: number; z: number };
+  ends: Record<
+    string,
+    {
+      name: EndId;
+      heading: number;
+      displaced: number;
+      sign: -1 | 1;
+      cat: string;
+      papiDeg: number;
+      alsM: number;
+    }
+  >;
+};
+
+export const RWY_0927: RunwayDef = {
+  id: "0927",
+  pair: "09/27",
+  length: 3448,
+  width: 60,
+  heading: 90,
+  clWidth: 0.9,
+  center: { x: 0, z: 0 },
+  ends: {
+    "09": {
+      name: "09",
+      heading: 90,
+      displaced: 142,
+      sign: -1,
+      cat: "CAT I",
+      papiDeg: 3.0,
+      alsM: 540,
+    },
+    "27": {
+      name: "27",
+      heading: 270,
+      displaced: 482,
+      sign: 1,
+      cat: "CAT II",
+      papiDeg: 3.0,
+      alsM: 900,
+    },
+  },
+};
+
+export const RWY_1432: RunwayDef = {
+  id: "1432",
+  pair: "14/32",
+  length: 2871,
+  width: 45,
+  heading: 135,
+  clWidth: 0.45,
+  center: { x: -480, z: 0 },
+  ends: {
+    "14": {
+      name: "14",
+      heading: 135,
+      displaced: 377,
+      sign: -1,
+      cat: "CAT I",
+      papiDeg: 3.0,
+      alsM: 740,
+    },
+    "32": {
+      name: "32",
+      heading: 315,
+      displaced: 260,
+      sign: 1,
+      cat: "SALS",
+      papiDeg: 3.26,
+      alsM: 420,
+    },
+  },
+};
+
+export const RUNWAYS = { "0927": RWY_0927, "1432": RWY_1432 };
+
+export const TAXI_N = { z: -96, x0: -1720, x1: 1720, width: 23 };
+export const TAXI_S = { z: 96, x0: -1600, x1: 1680, width: 23 };
+export const TAXI_N1 = { x: -1280, z0: -96, z1: -30, width: 23 };
+
+export function headingVec(headingDeg: number) {
+  const h = (headingDeg * Math.PI) / 180;
+  const fx = Math.sin(h);
+  const fz = -Math.cos(h);
+  const rx = Math.cos(h);
+  const rz = Math.sin(h);
+  return { fx, fz, rx, rz, yaw: -h };
+}
+
+export function rwyPos(rwy: RunwayDef, along: number, across: number, y = 0) {
+  const { fx, fz, rx, rz } = headingVec(rwy.heading);
+  return {
+    x: rwy.center.x + fx * along + rx * across,
+    y,
+    z: rwy.center.z + fz * along + rz * across,
+  };
+}
+
+export function rwyYaw(rwy: RunwayDef) {
+  return headingVec(rwy.heading).yaw;
+}
+
+/** Along-station of a threshold, from runway geometric centre. */
+export function thresholdAlong(rwy: RunwayDef, endName: string) {
+  const end = rwy.ends[endName];
+  return end.sign * (rwy.length / 2 - end.displaced);
+}
+
+export function physicalAlong(rwy: RunwayDef, sign: -1 | 1) {
+  return sign * (rwy.length / 2);
+}
+
+/** +1 if landing direction is +along (first-named end). */
+export function landingSign(end: { sign: -1 | 1 }) {
+  return (-end.sign) as -1 | 1;
+}
+
+export function endOf(name: EndId) {
+  const rwy = name === "09" || name === "27" ? RWY_0927 : RWY_1432;
+  return { rwy, end: rwy.ends[name] };
+}
+
+export function thresholdWorld(name: EndId, across = 0, y = 0) {
+  const { rwy, end } = endOf(name);
+  return rwyPos(rwy, thresholdAlong(rwy, end.name), across, y);
+}
+
+export type OrientedRect = {
+  x: number;
+  z: number;
+  headingDeg: number;
+  length: number;
+  width: number;
+};
+
+export function containsXZ(rect: OrientedRect, x: number, z: number, pad = 4) {
+  const { fx, fz, rx, rz } = headingVec(rect.headingDeg);
+  const dx = x - rect.x;
+  const dz = z - rect.z;
+  const along = dx * fx + dz * fz;
+  const across = dx * rx + dz * rz;
+  return Math.abs(along) <= rect.length / 2 + pad && Math.abs(across) <= rect.width / 2 + pad;
+}
+
+export function rectArea(r: OrientedRect) {
+  return r.length * r.width;
+}
+
+export const WALK_START = {
+  ...thresholdWorld("09", 0, 1.7),
+  yaw: -Math.PI / 2,
+};
+
+export const INSPECT_START = {
+  position: [210, 260, 520] as [number, number, number],
+  target: [0, 0, 0] as [number, number, number],
+};
+
+
+================================================================================
+FILE: src/lab/catalog.ts
+================================================================================
+
+import {
+  RWY_0927,
+  RWY_1432,
+  TAXI_N,
+  TAXI_S,
+  TAXI_N1,
+  rwyPos,
+  thresholdAlong,
+  landingSign,
+  physicalAlong,
+  headingVec,
+  type EndId,
+  type OrientedRect,
+  type RunwayDef,
+} from "./world";
+
+export type FeatureKind = "marking" | "light" | "sign" | "building";
+
+export type Feature = {
+  id: string;
+  title: string;
+  kind: FeatureKind;
+  location: string;
+  purpose: string;
+  icao: string;
+  dimensions: { label: string; value: string }[];
+  notes: string;
+  footprint: OrientedRect;
+};
+
+function fp(rwy: RunwayDef, along: number, across: number, length: number, width: number): OrientedRect {
+  const p = rwyPos(rwy, along, across);
+  return { x: p.x, z: p.z, headingDeg: rwy.heading, length, width };
+}
+
+function endFp(
+  rwy: RunwayDef,
+  endName: string,
+  distPastThr: number,
+  length: number,
+  width: number,
+  across = 0,
+): OrientedRect {
+  const end = rwy.ends[endName];
+  const along = thresholdAlong(rwy, endName) + landingSign(end) * distPastThr;
+  return fp(rwy, along, across, length, width);
+}
+
+function endFeatures(rwy: RunwayDef, endName: EndId): Feature[] {
+  const end = rwy.ends[endName];
+  const zebraCount = rwy.width >= 60 ? 16 : 12;
+  const usable =
+    rwy.length - rwy.ends[Object.keys(rwy.ends)[0]].displaced - rwy.ends[Object.keys(rwy.ends)[1]].displaced;
+  const displacedLen = end.displaced;
+  const other = Object.keys(rwy.ends).find((k) => k !== endName)!;
+
+  return [
+    {
+      id: `mark.thr.${endName}`,
+      title: `Threshold markings RWY ${endName}`,
+      kind: "marking",
+      location: `RWY ${endName} threshold, ${end.displaced} m in from the ${endName} physical end`,
+      purpose:
+        "Identify the beginning of the runway available for landing. Longitudinal white stripes (the “zebra”) are the ICAO threshold pattern.",
+      icao: "Annex 14 Vol I §5.2.4 Threshold markings",
+      dimensions: [
+        { label: "Stripe length", value: "30 m" },
+        { label: "Stripe width", value: "1.80 m" },
+        { label: "Gap", value: "1.80 m" },
+        { label: "Number of stripes", value: String(zebraCount) },
+        { label: "Start from threshold", value: "6 m" },
+        { label: "Runway width", value: `${rwy.width} m` },
+      ],
+      notes: `VABB RWY ${endName} is ${end.cat}. Displaced threshold ${end.displaced} m — landing is not authorised on the closed section before this bar.`,
+      footprint: endFp(rwy, endName, 21, 30, rwy.width),
+    },
+    {
+      id: `mark.des.${endName}`,
+      title: `Runway designation ${endName}`,
+      kind: "marking",
+      location: `Painted on RWY ${rwy.pair}, ${endName} approach end`,
+      purpose:
+        "Two-digit magnetic heading (nearest 10°) so a landing crew can confirm they are on the correct runway.",
+      icao: "Annex 14 Vol I §5.2.2 Runway designation marking",
+      dimensions: [
+        { label: "Character height", value: "9 m" },
+        { label: "Numerals", value: endName },
+        { label: "Placement", value: "12 m beyond threshold stripes" },
+      ],
+      notes: `True heading here is ~${end.heading}°. Mumbai magnetic variation is small; the painted ${endName} is the published designation.`,
+      footprint: endFp(rwy, endName, 52.5, 9, 16),
+    },
+    {
+      id: `mark.aim.${endName}`,
+      title: `Aiming point RWY ${endName}`,
+      kind: "marking",
+      location: `400 m past RWY ${endName} threshold, both sides of centreline`,
+      purpose:
+        "Visual aim point for a 3° (or published) approach. The pair of rectangles is the primary visual glideslope cue with PAPI.",
+      icao: "Annex 14 Vol I §5.2.5 Aiming point marking",
+      dimensions: [
+        { label: "Each rectangle", value: "50 × 8 m" },
+        { label: "Distance from threshold", value: "400 m (code 4)" },
+        { label: "Inner edge from CL", value: "9 m" },
+      ],
+      notes: `Paired with PAPI ${end.papiDeg.toFixed(2)}° on this end. CAT ${end.cat.replace("CAT ", "")} operations still use the same aiming-point location.`,
+      footprint: endFp(rwy, endName, 425, 50, 42),
+    },
+    {
+      id: `mark.tdz.${endName}`,
+      title: `Touchdown zone RWY ${endName}`,
+      kind: "marking",
+      location: `Pairs at 150 m intervals from 150 m to 900 m past threshold ${endName}`,
+      purpose:
+        "Paint the usable touchdown zone so the aiming point is not a lone mark. Pair count reduces with distance from threshold.",
+      icao: "Annex 14 Vol I §5.2.6 Touchdown zone marking",
+      dimensions: [
+        { label: "Longitudinal spacing", value: "150 m" },
+        { label: "Extent", value: "150–900 m" },
+        { label: "Bar size", value: "22.5 × 3 m (typical)" },
+      ],
+      notes: `Usable LDA is reduced by the ${end.displaced} m displacement. Marks are laid from the displaced threshold, not the physical end.`,
+      footprint: endFp(rwy, endName, 525, 750, rwy.width),
+    },
+    {
+      id: `mark.disp.${endName}`,
+      title: `Displaced-threshold arrows RWY ${endName}`,
+      kind: "marking",
+      location: `Closed-to-landing section, ${end.displaced} m before threshold ${endName}`,
+      purpose:
+        "Chevron arrows point to the landing threshold and show pavement that may be used for take-off / roll-out but not for landing.",
+      icao: "Annex 14 Vol I §5.2.4.9 / §5.2.7 Displaced threshold",
+      dimensions: [
+        { label: "Closed length", value: `${end.displaced} m` },
+        { label: "Arrow type", value: "White chevrons toward threshold" },
+      ],
+      notes: `VABB published displacement ${endName}: ${end.displaced} m. Opposite end ${other} is displaced ${rwy.ends[other].displaced} m. Schematic LDA is ${Math.round(usable)} m.`,
+      footprint: fp(
+        rwy,
+        (physicalAlong(rwy, end.sign) + thresholdAlong(rwy, endName)) / 2,
+        0,
+        displacedLen,
+        rwy.width,
+      ),
+    },
+    {
+      id: `light.thr.${endName}`,
+      title: `Threshold bar RWY ${endName}`,
+      kind: "light",
+      location: `Green wing-bar and threshold bar at ${endName}`,
+      purpose:
+        "Green lights facing the approach mark the landing threshold. A wing bar extends the cue beyond the pavement.",
+      icao: "Annex 14 Vol I §5.3.10 Runway threshold lights / wing bars",
+      dimensions: [
+        { label: "Colour (approach face)", value: "Green" },
+        { label: "Layout", value: "Bar across threshold + wing bars" },
+      ],
+      notes: `${end.cat} threshold at VABB ${endName}. Unidirectional green toward the approach; the opposite face of the bar is not a landing cue.`,
+      footprint: endFp(rwy, endName, 0, 6, rwy.width + 24),
+    },
+    {
+      id: `light.end.${endName}`,
+      title: `Runway-end lights RWY ${endName}`,
+      kind: "light",
+      location: `Red bar at the ${endName} physical end`,
+      purpose: "Red lights facing the runway warn that the usable pavement is ending.",
+      icao: "Annex 14 Vol I §5.3.11 Runway end lights",
+      dimensions: [
+        { label: "Colour", value: "Red (runway face)" },
+        { label: "Placement", value: "At the physical runway end" },
+      ],
+      notes: `The ${endName} end has a ${end.displaced} m displacement, so landing traffic stops well before this bar; departing traffic still needs the end lights.`,
+      footprint: fp(rwy, physicalAlong(rwy, end.sign), 0, 8, rwy.width + 8),
+    },
+    {
+      id: `light.als.${endName}`,
+      title: `Approach lights ${endName} (${end.cat} ${end.alsM} m)`,
+      kind: "light",
+      location: `Extended centreline before threshold ${endName}`,
+      purpose:
+        "Lead the aircraft onto the runway centreline in low visibility. Category (and length) set the barrette / side-row pattern.",
+      icao: "Annex 14 Vol I §5.3.4 Approach lighting systems",
+      dimensions: [
+        { label: "System length", value: `${end.alsM} m` },
+        { label: "Category", value: end.cat },
+        { label: "Glide path", value: `${end.papiDeg.toFixed(2)}°` },
+      ],
+      notes:
+        endName === "27"
+          ? "VABB 27 is CAT II: 900 m centreline barrettes, red side row in the inner 270 m, and a sequenced flashing “rabbit” toward the threshold."
+          : endName === "09"
+            ? "VABB 09 is CAT I with a 540 m simple approach centreline and a 300 m crossbar."
+            : endName === "14"
+              ? "VABB 14 uses a 740 m CAT I centreline (longer than 09 because of the approach path over the city/hills)."
+              : "VABB 32 is a 420 m SALS — a short simple approach lighting system, matching the higher 3.26° PAPI.",
+      footprint: endFp(rwy, endName, -end.alsM / 2, end.alsM, 30),
+    },
+    {
+      id: `light.papi.${endName}`,
+      title: `PAPI RWY ${endName}`,
+      kind: "light",
+      location: `Left of ${endName} as seen on approach, ~300 m past threshold, 15 m off the edge`,
+      purpose:
+        "Four-unit precision approach path indicator. Two white + two red means on slope. Colour is a function of the observer’s elevation angle.",
+      icao: "Annex 14 Vol I §5.3.5.29 PAPI / §5.3.5.31 siting",
+      dimensions: [
+        { label: "Units", value: "4" },
+        { label: "Spacing", value: "9 m" },
+        { label: "Offset from edge", value: "15 m (inboard unit)" },
+        { label: "Published angle", value: `${end.papiDeg.toFixed(2)}°` },
+        { label: "On-slope cue", value: "two white + two red" },
+      ],
+      notes: `Walk or orbit through the approach and watch the units flip. Settings are 0.5° / 0.17° below and above ${end.papiDeg.toFixed(2)}°. This is a schematic — not a certified aiming aid.`,
+      footprint: endFp(rwy, endName, 300, 12, 50, landingSign(end) === 1 ? -(rwy.width / 2 + 28) : rwy.width / 2 + 28),
+    },
+  ];
+}
+
+export const FEATURES: Feature[] = [
+  {
+    id: "mark.cl.0927",
+    title: "RWY 09/27 centreline",
+    kind: "marking",
+    location: "Full usable length of RWY 09/27",
+    purpose: "Provide directional guidance along the runway axis in low visibility and at night.",
+    icao: "Annex 14 Vol I §5.2.3 Runway centre line marking",
+    dimensions: [
+      { label: "Stripe", value: "30 m" },
+      { label: "Gap", value: "20 m" },
+      { label: "Width", value: "0.90 m (code 4, width ≥ 45 m)" },
+      { label: "Runway", value: "3448 × 60 m" },
+    ],
+    notes: "VABB 09/27 is the primary instrument runway. Centreline width is the ICAO 0.90 m value, not the 0.45 m used on 14/32.",
+    footprint: fp(RWY_0927, 0, 0, 3448, 0.9),
+  },
+  {
+    id: "mark.cl.1432",
+    title: "RWY 14/32 centreline",
+    kind: "marking",
+    location: "Full usable length of RWY 14/32",
+    purpose: "Same function as 09/27, on the crossing runway.",
+    icao: "Annex 14 Vol I §5.2.3 Runway centre line marking",
+    dimensions: [
+      { label: "Stripe / gap", value: "30 m / 20 m" },
+      { label: "Width", value: "0.45 m" },
+      { label: "Runway", value: "2871 × 45 m" },
+    ],
+    notes: "45 m pavement uses the narrower 0.45 m centreline. Heading ~135/315 true.",
+    footprint: fp(RWY_1432, 0, 0, 2871, 0.45),
+  },
+  ...endFeatures(RWY_0927, "09"),
+  ...endFeatures(RWY_0927, "27"),
+  ...endFeatures(RWY_1432, "14"),
+  ...endFeatures(RWY_1432, "32"),
+  {
+    id: "mark.side.0927",
+    title: "RWY 09/27 side stripes",
+    kind: "marking",
+    location: "Both edges of RWY 09/27",
+    purpose: "Show the edge of the load-bearing pavement, especially where the shoulder contrast is poor.",
+    icao: "Annex 14 Vol I §5.2.7 Runway side stripe marking",
+    dimensions: [
+      { label: "Width", value: "0.90 m" },
+      { label: "Runway width", value: "60 m" },
+    ],
+    notes: "Continuous white. The displaced sections keep side stripes — only landing is restricted, not pavement width.",
+    footprint: fp(RWY_0927, 0, 0, 3448, 60),
+  },
+  {
+    id: "mark.side.1432",
+    title: "RWY 14/32 side stripes",
+    kind: "marking",
+    location: "Both edges of RWY 14/32",
+    purpose: "Edge of the 45 m crossing runway.",
+    icao: "Annex 14 Vol I §5.2.7 Runway side stripe marking",
+    dimensions: [
+      { label: "Width", value: "0.90 m" },
+      { label: "Runway width", value: "45 m" },
+    ],
+    notes: "Same 0.90 m stripe on a narrower runway — the inner face of the stripe sits 0.45 m in from each edge.",
+    footprint: fp(RWY_1432, 0, 0, 2871, 45),
+  },
+  {
+    id: "mark.hold.n1",
+    title: "Runway-holding position N1",
+    kind: "marking",
+    location: "Taxiway N1, 75 m north of RWY 09/27 centreline",
+    purpose:
+      "The CAT I/II holding position: two solid + two dashed yellow lines. Solid pair faces the runway. Aircraft stop before the solids unless cleared to cross.",
+    icao: "Annex 14 Vol I §5.2.10 Runway-holding position marking",
+    dimensions: [
+      { label: "Pattern", value: "2 solid + 2 dashed yellow" },
+      { label: "Line width", value: "0.90 m" },
+      { label: "Gap", value: "0.90 m" },
+      { label: "Distance from CL", value: "75 m (code 4, precision)" },
+    ],
+    notes: "N1 is the schematic west connector onto 09/27. CAT II hold for 27 is further back in the real aerodrome; this lab shows the painted pattern at a code-4 distance.",
+    footprint: { x: TAXI_N1.x, z: -75, headingDeg: 0, length: 8, width: 23 },
+  },
+  {
+    id: "mark.taxi.n",
+    title: "Taxiway N centreline",
+    kind: "marking",
+    location: "Parallel taxiway north of RWY 09/27",
+    purpose: "Continuous yellow centreline for taxi guidance.",
+    icao: "Annex 14 Vol I §5.2.8 Taxiway centre line marking",
+    dimensions: [
+      { label: "Style", value: "Continuous yellow" },
+      { label: "Width", value: "0.30 m" },
+      { label: "Taxiway width", value: "23 m (schematic)" },
+    ],
+    notes: "Schematic ribbon — VABB’s real N has fillets, stubs and CAT II routing that are intentionally omitted.",
+    footprint: { x: 0, z: TAXI_N.z, headingDeg: 90, length: TAXI_N.x1 - TAXI_N.x0, width: 0.3 },
+  },
+  {
+    id: "mark.taxi.s",
+    title: "Taxiway S centreline",
+    kind: "marking",
+    location: "Parallel taxiway south of RWY 09/27, between the runway and T2",
+    purpose: "South parallel taxiway centreline.",
+    icao: "Annex 14 Vol I §5.2.8 Taxiway centre line marking",
+    dimensions: [
+      { label: "Style", value: "Continuous yellow" },
+      { label: "Width", value: "0.30 m" },
+    ],
+    notes: "S sits between 09/27 and the T2 massing. Keep it in the layer toggle with other markings.",
+    footprint: { x: 0, z: TAXI_S.z, headingDeg: 90, length: TAXI_S.x1 - TAXI_S.x0, width: 0.3 },
+  },
+  {
+    id: "light.edge.0927",
+    title: "RWY 09/27 edge lights",
+    kind: "light",
+    location: "Both edges, 60 m longitudinal spacing",
+    purpose:
+      "White edge lights define the runway at night. The last 600 m in the take-off direction are yellow caution zone.",
+    icao: "Annex 14 Vol I §5.3.9 Runway edge lights",
+    dimensions: [
+      { label: "Spacing", value: "60 m" },
+      { label: "Colour", value: "White; yellow last 600 m" },
+      { label: "Runway length", value: "3448 m" },
+    ],
+    notes: "Bidirectional runway: both ends show a 600 m yellow caution zone. Elevated lights, schematic 0.4 m high.",
+    footprint: fp(RWY_0927, 0, 0, 3448, 60),
+  },
+  {
+    id: "light.edge.1432",
+    title: "RWY 14/32 edge lights",
+    kind: "light",
+    location: "Both edges of the crossing runway, 60 m spacing",
+    purpose: "Same edge-light rule on 14/32, including yellow caution ends.",
+    icao: "Annex 14 Vol I §5.3.9 Runway edge lights",
+    dimensions: [
+      { label: "Spacing", value: "60 m" },
+      { label: "Colour", value: "White; yellow last 600 m" },
+    ],
+    notes: "45 m runway — edge lights sit on the 0.90 m side stripe.",
+    footprint: fp(RWY_1432, 0, 0, 2871, 45),
+  },
+  {
+    id: "light.cl.0927",
+    title: "RWY 09/27 centreline lights",
+    kind: "light",
+    location: "Inset on 09/27 centreline, 15 m spacing",
+    purpose:
+      "High-intensity centreline for low-visibility take-off and landing. Colour-coded by remaining distance: white, then alternate red/white last 900 m, red last 300 m.",
+    icao: "Annex 14 Vol I §5.3.12 Runway centre line lights",
+    dimensions: [
+      { label: "Spacing", value: "15 m" },
+      { label: "White section", value: "until 900 m remaining" },
+      { label: "Alternate red/white", value: "900–300 m remaining" },
+      { label: "Red", value: "last 300 m" },
+    ],
+    notes: "Fitted on 09/27 only in this lab (the instrument runway). Bidirectional coding is shown from both ends.",
+    footprint: fp(RWY_0927, 0, 0, 3448, 1),
+  },
+  {
+    id: "light.tdz.27",
+    title: "Touchdown-zone lights RWY 27",
+    kind: "light",
+    location: "First 900 m of RWY 27 (CAT II end)",
+    purpose:
+      "White inset bars in the touchdown zone to define the landing area in CAT II. Not fitted on the CAT I 09 end in this schematic.",
+    icao: "Annex 14 Vol I §5.3.13 Runway touchdown zone lights",
+    dimensions: [
+      { label: "Length", value: "900 m" },
+      { label: "Colour", value: "White" },
+      { label: "Typical spacing", value: "30 m rows" },
+    ],
+    notes: "VABB 27 is the CAT II runway — TDZ lights are the CAT II differentiator besides the 900 m ALS.",
+    footprint: endFp(RWY_0927, "27", 450, 900, 40),
+  },
+  {
+    id: "light.taxi.edge",
+    title: "Taxiway edge lights",
+    kind: "light",
+    location: "Blue lights along N, S and N1 edges",
+    purpose: "Blue edge lights outline the taxiway at night.",
+    icao: "Annex 14 Vol I §5.3.17 Taxiway edge lights",
+    dimensions: [
+      { label: "Colour", value: "Blue" },
+      { label: "Spacing (schematic)", value: "60 m" },
+    ],
+    notes: "Blue is reserved for taxiway edge — never used on the runway. Toggle the Lights layer to hide them.",
+    footprint: { x: 0, z: TAXI_N.z, headingDeg: 90, length: 3400, width: 23 },
+  },
+  {
+    id: "light.taxi.cl",
+    title: "Taxiway centreline lights",
+    kind: "light",
+    location: "Green inset lights on N, S and N1 centrelines",
+    purpose: "Green centreline lights for night / low-visibility taxi.",
+    icao: "Annex 14 Vol I §5.3.16 Taxiway centre line lights",
+    dimensions: [
+      { label: "Colour", value: "Green" },
+      { label: "Spacing (schematic)", value: "30 m" },
+    ],
+    notes: "Where a taxiway centreline meets a runway, real systems switch to alternate green/yellow. Schematic uses steady green on the taxiways only.",
+    footprint: { x: 0, z: TAXI_S.z, headingDeg: 90, length: 3200, width: 1 },
+  },
+  {
+    id: "light.rgl.n1",
+    title: "Runway guard lights (wig-wag) N1",
+    kind: "light",
+    location: "Both sides of N1 at the holding position",
+    purpose:
+      "Alternating yellow wig-wag lights (configuration A) that shout “runway ahead”. Used in addition to the painted hold.",
+    icao: "Annex 14 Vol I §5.3.23 Runway guard lights",
+    dimensions: [
+      { label: "Colour", value: "Yellow, alternating" },
+      { label: "Config", value: "A — elevated pair" },
+    ],
+    notes: "Watch them alternate. They sit with the mandatory 09-27 sign at N1.",
+    footprint: { x: TAXI_N1.x, z: -75, headingDeg: 0, length: 6, width: 28 },
+  },
+  {
+    id: "light.reil.27",
+    title: "REIL threshold 27",
+    kind: "light",
+    location: "White flashing pair at threshold 27, outboard of the wing bars",
+    purpose:
+      "Runway end identifier lights — high-intensity white flashers that help acquire the threshold in cluttered city lighting.",
+    icao: "Annex 14 Vol I §5.3.8 Runway threshold identification lights",
+    dimensions: [
+      { label: "Colour", value: "White, flashing" },
+      { label: "Units", value: "2" },
+    ],
+    notes: "Fitted on 27 in this lab (the CAT II / city-approach end). Flash is synchronised, ~1 Hz schematic.",
+    footprint: endFp(RWY_0927, "27", 0, 8, 90),
+  },
+  {
+    id: "sign.mand.0927",
+    title: "Mandatory sign 09-27",
+    kind: "sign",
+    location: "N1 holding position, left of the taxiway facing the hold",
+    purpose: "Red / white mandatory instruction: the runway you are about to enter.",
+    icao: "Annex 14 Vol I §5.4.2 Mandatory instruction signs",
+    dimensions: [
+      { label: "Legend", value: "09-27" },
+      { label: "Face", value: "White on red" },
+    ],
+    notes: "Installed at every runway/taxiway intersection. Combined with location sign N1 in a real array.",
+    footprint: { x: TAXI_N1.x - 16, z: -75, headingDeg: 0, length: 1.2, width: 3.2 },
+  },
+  {
+    id: "sign.mand.cat2",
+    title: "Mandatory sign CAT II 27",
+    kind: "sign",
+    location: "Approach to 27 CAT II holding position (schematic, east N1-style hold)",
+    purpose: "Marks the CAT II holding position for RWY 27. Aircraft must not pass in CAT II operations without clearance.",
+    icao: "Annex 14 Vol I §5.4.2 / §5.2.10 Category I/II/III holding positions",
+    dimensions: [
+      { label: "Legend", value: "CAT II 27" },
+      { label: "Face", value: "White on red" },
+    ],
+    notes: "VABB 27 is CAT II; 09 is CAT I. The extra hold protects the ILS critical/sensitive area.",
+    footprint: { x: 1180, z: -78, headingDeg: 0, length: 1.2, width: 4.4 },
+  },
+  {
+    id: "sign.mand.noentry",
+    title: "NO ENTRY sign",
+    kind: "sign",
+    location: "West of T2 apron / S taxiway stub (schematic)",
+    purpose: "Mandatory prohibition — do not proceed. Used at one-way stubs and closed pavement.",
+    icao: "Annex 14 Vol I §5.4.2 Mandatory instruction signs",
+    dimensions: [
+      { label: "Legend", value: "NO ENTRY" },
+      { label: "Face", value: "White on red" },
+    ],
+    notes: "Placed on a stub that looks like a runway entrance but is not. Classic hot-spot mitigation.",
+    footprint: { x: 620, z: 118, headingDeg: 90, length: 1.2, width: 3.6 },
+  },
+  {
+    id: "sign.loc.n1",
+    title: "Location sign N1",
+    kind: "sign",
+    location: "N1 holding position, yellow on black",
+    purpose: "Identifies the taxiway you are on. Location signs are yellow inscription on black.",
+    icao: "Annex 14 Vol I §5.4.3 Location signs",
+    dimensions: [
+      { label: "Legend", value: "N1" },
+      { label: "Face", value: "Yellow on black" },
+    ],
+    notes: "Never used alone at a hold — always paired with the red mandatory runway sign.",
+    footprint: { x: TAXI_N1.x + 16, z: -75, headingDeg: 0, length: 1.2, width: 2.4 },
+  },
+  {
+    id: "sign.dir.ne",
+    title: "Direction sign N / E",
+    kind: "sign",
+    location: "Taxiway N at the N1 junction",
+    purpose: "Black on yellow with arrows: continue on N or turn toward the east / runway connector.",
+    icao: "Annex 14 Vol I §5.4.4 Direction/destination signs",
+    dimensions: [
+      { label: "Legend", value: "N ←  → E" },
+      { label: "Face", value: "Black on yellow" },
+    ],
+    notes: "Information signs are yellow. A black-on-yellow arrow board is not a hold — it is routing.",
+    footprint: { x: TAXI_N1.x, z: TAXI_N.z - 16, headingDeg: 90, length: 1.2, width: 4.8 },
+  },
+  {
+    id: "sign.dtg.0927",
+    title: "Distance-remaining markers 09/27",
+    kind: "sign",
+    location: "Every 1000 ft along RWY 09/27, white on black",
+    purpose:
+      "Runway distance-remaining (typically FAA-style) in thousands of feet, so a departing crew can judge accelerate-stop / remaining TODA at a glance.",
+    icao: "Annex 14 Vol I §5.4.7 Information signs (distance-to-go is a commonly provided supplement)",
+    dimensions: [
+      { label: "Numerals", value: "10 … 1" },
+      { label: "Interval", value: "1000 ft (304.8 m)" },
+      { label: "Face", value: "White on black" },
+    ],
+    notes: "VABB 09/27 is 3448 m ≈ 11 312 ft, so markers 10 through 1 fit. This lab places them on the north shoulder for the 09 take-off direction.",
+    footprint: fp(RWY_0927, 0, -38, 3448, 2),
+  },
+  {
+    id: "bldg.t2",
+    title: "Terminal 2 massing",
+    kind: "building",
+    location: "South of RWY 09/27, land-side of taxiway S",
+    purpose: "Schematic stand-in for CSMIA Terminal 2. Not a photogrammetric model.",
+    icao: "Not a visual aid — aerodrome obstacle / building restriction (Annex 14 §4)",
+    dimensions: [
+      { label: "Role", value: "Passenger terminal massing" },
+      { label: "Position", value: "South of 09/27" },
+    ],
+    notes: "Block geometry only. Grok Runway Lab is not a digital twin and must not be used for real docking or hot-spot study.",
+    footprint: { x: 380, z: 340, headingDeg: 90, length: 420, width: 160 },
+  },
+  {
+    id: "bldg.tower",
+    title: "Control tower",
+    kind: "building",
+    location: "South-west of T2 apron, overlooking both runways",
+    purpose: "Visual control room with a view of 09/27 and 14/32.",
+    icao: "Annex 14 Vol I §1.4 / tower siting (operational, not a marking)",
+    dimensions: [
+      { label: "Cab height (schematic)", value: "~65 m" },
+    ],
+    notes: "The real VABB tower sits on the south campus. Height and exact grid are schematic.",
+    footprint: { x: -40, z: 260, headingDeg: 0, length: 18, width: 18 },
+  },
+  {
+    id: "bldg.hangars",
+    title: "Maintenance hangars",
+    kind: "building",
+    location: "North of taxiway N",
+    purpose: "MRO / GHA hangar massing and a small apron for parked jets.",
+    icao: "Not a visual aid",
+    dimensions: [{ label: "Count", value: "3 sheds" }],
+    notes: "Block hangars only — no photo textures as 3D meshes.",
+    footprint: { x: -80, z: -280, headingDeg: 90, length: 280, width: 80 },
+  },
+  {
+    id: "bldg.windsock",
+    title: "Windsock",
+    kind: "building",
+    location: "Near threshold 09, left of approach",
+    purpose: "Surface wind direction and a crude speed cue (extension of the sleeve).",
+    icao: "Annex 14 Vol I §5.1.1 Wind direction indicator",
+    dimensions: [
+      { label: "Pole", value: "Illuminated schematic" },
+      { label: "Colour", value: "Orange / white bands" },
+    ],
+    notes: "A wind direction indicator is required at an aerodrome. The sleeve here weathervanes on a fixed lab breeze.",
+    footprint: { x: -1500, z: -70, headingDeg: 0, length: 8, width: 8 },
+  },
+  {
+    id: "bldg.jets",
+    title: "Parked jets (block geometry)",
+    kind: "building",
+    location: "South apron between taxiway S and T2",
+    purpose: "Scale reference. Three narrow-body silhouettes, boxes and cylinders only.",
+    icao: "Not a visual aid",
+    dimensions: [
+      { label: "Type", value: "Schematic narrow-body" },
+      { label: "Count", value: "3" },
+    ],
+    notes: "No photographic textures, no airline livery. They exist so walk-mode has something human-scaled beside the 60 m runway.",
+    footprint: { x: 220, z: 168, headingDeg: 90, length: 180, width: 50 },
+  },
+];
+
+export const FEATURE_BY_ID = new Map(FEATURES.map((f) => [f.id, f]));
+
+export function featuresOfKind(kind: FeatureKind) {
+  return FEATURES.filter((f) => f.kind === kind);
+}
+
+export type LayerFlags = {
+  markings: boolean;
+  lights: boolean;
+  signs: boolean;
+  buildings: boolean;
+};
+
+const LAYER_OF: Record<FeatureKind, keyof LayerFlags> = {
+  marking: "markings",
+  light: "lights",
+  sign: "signs",
+  building: "buildings",
+};
+
+export function pickFeature(x: number, z: number, layers: LayerFlags) {
+  let best: Feature | null = null;
+  let bestArea = Infinity;
+  for (const f of FEATURES) {
+    if (!layers[LAYER_OF[f.kind]]) continue;
+    const r = f.footprint;
+    const { fx, fz, rx, rz } = headingVec(r.headingDeg);
+    const dx = x - r.x;
+    const dz = z - r.z;
+    const along = dx * fx + dz * fz;
+    const across = dx * rx + dz * rz;
+    const pad = f.kind === "sign" ? 6 : f.kind === "light" ? 8 : 4;
+    if (Math.abs(along) <= r.length / 2 + pad && Math.abs(across) <= r.width / 2 + pad) {
+      const area = r.length * r.width;
+      if (area < bestArea) {
+        best = f;
+        bestArea = area;
+      }
+    }
+  }
+  return best;
+}
+
+export function nearestFeature(x: number, z: number, layers: LayerFlags) {
+  let best: Feature | null = null;
+  let bestD = Infinity;
+  for (const f of FEATURES) {
+    if (!layers[LAYER_OF[f.kind]]) continue;
+    const d = Math.hypot(f.footprint.x - x, f.footprint.z - z);
+    if (d < bestD) {
+      best = f;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+
+================================================================================
+FILE: src/lab/store.ts
+================================================================================
+
+import { create } from "zustand";
+import type { Feature } from "./catalog";
+
+export type Mode = "start" | "inspect" | "walk";
+export type Lighting = "day" | "dusk" | "night";
+
+export type Layers = {
+  markings: boolean;
+  lights: boolean;
+  signs: boolean;
+  buildings: boolean;
+};
+
+type LabState = {
+  mode: Mode;
+  lighting: Lighting;
+  layers: Layers;
+  selectedId: string | null;
+  helpOpen: boolean;
+  catalogOpen: boolean;
+  walkReset: number;
+  focusToken: number;
+  pointerLocked: boolean;
+  enter: (mode: "inspect" | "walk") => void;
+  setMode: (mode: Mode) => void;
+  setLighting: (l: Lighting) => void;
+  toggleLayer: (k: keyof Layers) => void;
+  select: (id: string | null) => void;
+  setHelpOpen: (v: boolean) => void;
+  setCatalogOpen: (v: boolean) => void;
+  setPointerLocked: (v: boolean) => void;
+  focusFeature: (f: Feature) => void;
+};
+
+export const useLab = create<LabState>((set) => ({
+  mode: "start",
+  lighting: "day",
+  layers: { markings: true, lights: true, signs: true, buildings: true },
+  selectedId: null,
+  helpOpen: false,
+  catalogOpen: false,
+  walkReset: 0,
+  focusToken: 0,
+  pointerLocked: false,
+  enter: (mode) =>
+    set({
+      mode,
+      helpOpen: false,
+      catalogOpen: mode === "inspect" && typeof window !== "undefined" && window.innerWidth >= 768,
+      walkReset: mode === "walk" ? Date.now() : 0,
+    }),
+  setMode: (mode) =>
+    set((s) => ({
+      mode,
+      walkReset: mode === "walk" ? Date.now() : s.walkReset,
+      pointerLocked: mode === "walk" ? s.pointerLocked : false,
+    })),
+  setLighting: (lighting) => set({ lighting }),
+  toggleLayer: (k) => set((s) => ({ layers: { ...s.layers, [k]: !s.layers[k] } })),
+  select: (selectedId) => set({ selectedId }),
+  setHelpOpen: (helpOpen) => set({ helpOpen }),
+  setCatalogOpen: (catalogOpen) => set({ catalogOpen }),
+  setPointerLocked: (pointerLocked) => set({ pointerLocked }),
+  focusFeature: (f) =>
+    set({
+      selectedId: f.id,
+      catalogOpen: true,
+      focusToken: Date.now(),
+    }),
+}));
+
+
+================================================================================
+FILE: src/lab/input.ts
+================================================================================
+
+const GAME_CODES = new Set([
+  "KeyW",
+  "KeyA",
+  "KeyS",
+  "KeyD",
+  "KeyQ",
+  "KeyE",
+  "KeyC",
+  "KeyF",
+  "KeyH",
+  "Space",
+  "ShiftLeft",
+  "ShiftRight",
+  "ControlLeft",
+  "ControlRight",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Escape",
+]);
+
+class InputState {
+  keys = new Set<string>();
+  injected: Set<string> | null = null;
+  touchX = 0;
+  touchY = 0;
+  lookDx = 0;
+  lookDy = 0;
+  fPressed = false;
+  private fWas = false;
+
+  has(code: string) {
+    if (this.injected) return this.injected.has(code);
+    return this.keys.has(code);
+  }
+
+  setInjected(codes: string[]) {
+    this.injected = codes.length ? new Set(codes) : null;
+  }
+
+  consumeLook() {
+    const dx = this.lookDx;
+    const dy = this.lookDy;
+    this.lookDx = 0;
+    this.lookDy = 0;
+    return { dx, dy };
+  }
+
+  consumeF() {
+    const v = this.fPressed;
+    this.fPressed = false;
+    return v;
+  }
+
+  attach() {
+    const onDown = (e: KeyboardEvent) => {
+      if (e.repeat) {
+        if (GAME_CODES.has(e.code)) e.preventDefault();
+        return;
+      }
+      this.keys.add(e.code);
+      if (e.code === "KeyF") this.fPressed = true;
+      if (GAME_CODES.has(e.code)) e.preventDefault();
+    };
+    const onUp = (e: KeyboardEvent) => {
+      this.keys.delete(e.code);
+    };
+    const onBlur = () => this.keys.clear();
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onBlur);
+    };
+  }
+}
+
+export const input = new InputState();
+
+declare global {
+  interface Window {
+    __controlsTest?: {
+      getYaw: () => number;
+      getSpeed: () => number;
+      setKeys: (codes: string[]) => void;
+      getPosition?: () => { x: number; y: number; z: number };
+    };
+  }
+}
+
+
+================================================================================
+FILE: src/lab/digits.ts
+================================================================================
+
+/** 7-segment digits in a local frame: along = height (9 m), across = width (5 m). */
+
+export type Seg = { across: number; along: number; w: number; d: number };
+
+const W = 5;
+const H = 9;
+const S = 1.15;
+
+const segs: Record<string, Seg> = {
+  a: { across: 0, along: H - S / 2, w: W, d: S },
+  b: { across: W / 2 - S / 2, along: H * 0.75, w: S, d: H * 0.42 },
+  c: { across: W / 2 - S / 2, along: H * 0.25, w: S, d: H * 0.42 },
+  d: { across: 0, along: S / 2, w: W, d: S },
+  e: { across: -(W / 2 - S / 2), along: H * 0.25, w: S, d: H * 0.42 },
+  f: { across: -(W / 2 - S / 2), along: H * 0.75, w: S, d: H * 0.42 },
+  g: { across: 0, along: H / 2, w: W, d: S },
+};
+
+const MAP: Record<string, string[]> = {
+  "0": ["a", "b", "c", "d", "e", "f"],
+  "1": ["b", "c"],
+  "2": ["a", "b", "g", "e", "d"],
+  "3": ["a", "b", "g", "c", "d"],
+  "4": ["f", "g", "b", "c"],
+  "5": ["a", "f", "g", "c", "d"],
+  "6": ["a", "f", "g", "e", "c", "d"],
+  "7": ["a", "b", "c"],
+  "8": ["a", "b", "c", "d", "e", "f", "g"],
+  "9": ["a", "b", "c", "d", "f", "g"],
+};
+
+export const DIGIT_W = W;
+export const DIGIT_H = H;
+export const DIGIT_GAP = 2.2;
+
+export function digitSegs(ch: string): Seg[] {
+  return (MAP[ch] ?? []).map((k) => segs[k]);
+}
+
+
+================================================================================
+FILE: src/lab/markings.tsx
+================================================================================
+
+import { useLayoutEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import {
+  RWY_0927,
+  RWY_1432,
+  TAXI_N,
+  TAXI_S,
+  TAXI_N1,
+  rwyPos,
+  rwyYaw,
+  thresholdAlong,
+  landingSign,
+  physicalAlong,
+  type RunwayDef,
+} from "./world";
+import { digitSegs, DIGIT_GAP, DIGIT_W } from "./digits";
+import { useLab } from "./store";
+
+export type Mark = {
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  ry: number;
+  y?: number;
+};
+
+function pushBox(list: Mark[], rwy: RunwayDef, along: number, across: number, alongLen: number, acrossW: number) {
+  const p = rwyPos(rwy, along, across);
+  list.push({ x: p.x, z: p.z, w: acrossW, d: alongLen, ry: rwyYaw(rwy) });
+}
+
+function centreline(rwy: RunwayDef, out: Mark[]) {
+  const usable0 = -rwy.length / 2;
+  let a = usable0 + 5;
+  const end = rwy.length / 2 - 5;
+  while (a + 30 <= end) {
+    pushBox(out, rwy, a + 15, 0, 30, rwy.clWidth);
+    a += 50;
+  }
+}
+
+function zebra(rwy: RunwayDef, endName: string, out: Mark[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const count = rwy.width >= 60 ? 16 : 12;
+  const alongC = thr + ls * (6 + 15);
+  const pattern = (2 * count - 1) * 1.8;
+  const first = -pattern / 2 + 0.9;
+  for (let i = 0; i < count; i++) {
+    pushBox(out, rwy, alongC, first + i * 3.6, 30, 1.8);
+  }
+  pushBox(out, rwy, thr + ls * 0.9, 0, 1.8, rwy.width - 2);
+}
+
+function designation(rwy: RunwayDef, endName: string, out: Mark[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const chars = endName.split("");
+  const totalW = chars.length * DIGIT_W + (chars.length - 1) * DIGIT_GAP;
+  chars.forEach((ch, i) => {
+    const across0 = -totalW / 2 + DIGIT_W / 2 + i * (DIGIT_W + DIGIT_GAP);
+    for (const s of digitSegs(ch)) {
+      const along = thr + ls * (48 + s.along);
+      const across = across0 + s.across;
+      const p = rwyPos(rwy, along, across);
+      out.push({
+        x: p.x,
+        z: p.z,
+        w: s.w,
+        d: s.d,
+        ry: rwyYaw(rwy),
+      });
+    }
+  });
+}
+
+function aiming(rwy: RunwayDef, endName: string, out: Mark[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const along = thr + ls * (400 + 25);
+  for (const side of [-1, 1]) {
+    pushBox(out, rwy, along, side * 13, 50, 8);
+  }
+}
+
+function tdz(rwy: RunwayDef, endName: string, out: Mark[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const pattern: Record<number, number> = { 150: 3, 300: 2, 450: 1, 600: 1, 750: 1, 900: 1 };
+  for (const dist of [150, 300, 450, 600, 750, 900]) {
+    const n = pattern[dist];
+    const along = thr + ls * dist;
+    for (const side of [-1, 1]) {
+      for (let k = 0; k < n; k++) {
+        const across = side * (9 + 1.5 + k * 6);
+        pushBox(out, rwy, along, across, 22.5, 3);
+      }
+    }
+  }
+}
+
+function sideStripes(rwy: RunwayDef, out: Mark[]) {
+  const across = rwy.width / 2 - 0.45;
+  const segs = 16;
+  const len = rwy.length / segs;
+  for (let i = 0; i < segs; i++) {
+    const along = -rwy.length / 2 + len / 2 + i * len;
+    pushBox(out, rwy, along, across, len - 0.4, 0.9);
+    pushBox(out, rwy, along, -across, len - 0.4, 0.9);
+  }
+}
+
+function arrows(rwy: RunwayDef, endName: string, out: Mark[]) {
+  const end = rwy.ends[endName];
+  if (end.displaced < 40) return;
+  const ls = landingSign(end);
+  const phys = physicalAlong(rwy, end.sign);
+  const thr = thresholdAlong(rwy, endName);
+  const closed = Math.abs(thr - phys);
+  const step = 55;
+  const n = Math.max(2, Math.floor((closed - 20) / step));
+  const yaw = rwyYaw(rwy);
+  for (let i = 0; i < n; i++) {
+    const along = phys + ls * (18 + i * step);
+    const p = rwyPos(rwy, along, 0);
+    const arm = 11;
+    const thick = 1.1;
+    const ang = 0.72;
+    out.push({
+      x: p.x,
+      z: p.z,
+      w: thick,
+      d: arm,
+      ry: yaw + ang * ls,
+    });
+    out.push({
+      x: p.x,
+      z: p.z,
+      w: thick,
+      d: arm,
+      ry: yaw - ang * ls,
+    });
+  }
+}
+
+function holdN1(out: Mark[]) {
+  const zSolid1 = -75 + 1.35;
+  const zSolid2 = -75 - 0.45;
+  const zDash1 = -75 - 2.25;
+  const zDash2 = -75 - 4.05;
+  const x = TAXI_N1.x;
+  const w = 18;
+  out.push({ x, z: zSolid1, w, d: 0.9, ry: 0 });
+  out.push({ x, z: zSolid2, w, d: 0.9, ry: 0 });
+  for (let i = -3; i <= 3; i++) {
+    out.push({ x: x + i * 2.6, z: zDash1, w: 1.4, d: 0.9, ry: 0 });
+    out.push({ x: x + i * 2.6, z: zDash2, w: 1.4, d: 0.9, ry: 0 });
+  }
+}
+
+function taxiCL(out: Mark[]) {
+  const w = 0.3;
+  const step = 40;
+  for (let x = TAXI_N.x0; x < TAXI_N.x1; x += step) {
+    out.push({ x: x + step / 2, z: TAXI_N.z, w, d: step * 0.98, ry: Math.PI / 2 });
+  }
+  for (let x = TAXI_S.x0; x < TAXI_S.x1; x += step) {
+    out.push({ x: x + step / 2, z: TAXI_S.z, w, d: step * 0.98, ry: Math.PI / 2 });
+  }
+  for (let z = TAXI_N1.z0; z < TAXI_N1.z1; z += 8) {
+    out.push({ x: TAXI_N1.x, z: z + 4, w, d: 7.6, ry: 0 });
+  }
+}
+
+function buildWhite(): Mark[] {
+  const m: Mark[] = [];
+  for (const rwy of [RWY_0927, RWY_1432]) {
+    centreline(rwy, m);
+    sideStripes(rwy, m);
+    for (const name of Object.keys(rwy.ends)) {
+      zebra(rwy, name, m);
+      designation(rwy, name, m);
+      aiming(rwy, name, m);
+      tdz(rwy, name, m);
+      arrows(rwy, name, m);
+    }
+  }
+  return m;
+}
+
+function buildYellow(): Mark[] {
+  const m: Mark[] = [];
+  holdN1(m);
+  taxiCL(m);
+  return m;
+}
+
+function InstancedMarks({ items, color }: { items: Mark[]; color: string }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
+  const mat = useMemo(
+    () => new THREE.MeshBasicMaterial({ color, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    [color],
+  );
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dummy = new THREE.Object3D();
+    items.forEach((it, i) => {
+      dummy.position.set(it.x, it.y ?? 0.03, it.z);
+      dummy.rotation.set(0, it.ry, 0);
+      dummy.scale.set(it.w, 0.04, it.d);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [items]);
+  return <instancedMesh ref={ref} args={[geo, mat, items.length]} frustumCulled={false} />;
+}
+
+export function Markings() {
+  const on = useLab((s) => s.layers.markings);
+  const white = useMemo(buildWhite, []);
+  const yellow = useMemo(buildYellow, []);
+  if (!on) return null;
+  return (
+    <group>
+      <InstancedMarks items={white} color="#f3f1ea" />
+      <InstancedMarks items={yellow} color="#c4a035" />
+    </group>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/lights.tsx
+================================================================================
+
+import { useFrame, useThree } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { useLab } from "./store";
+import {
+  RWY_0927,
+  RWY_1432,
+  TAXI_N,
+  TAXI_S,
+  TAXI_N1,
+  rwyPos,
+  headingVec,
+  thresholdAlong,
+  landingSign,
+  physicalAlong,
+  type RunwayDef,
+} from "./world";
+
+type Lamp = { x: number; y: number; z: number; color: string; r?: number };
+
+const C = {
+  white: "#f4f1ea",
+  yellow: "#e0b43a",
+  red: "#d4453a",
+  green: "#3dbe6a",
+  blue: "#3a7bd4",
+};
+
+function edgeLamps(rwy: RunwayDef, out: Lamp[]) {
+  const step = 60;
+  const half = rwy.length / 2;
+  const edge = rwy.width / 2 + 0.2;
+  for (let along = -half; along <= half + 0.01; along += step) {
+    const remainingPos = half - along;
+    const remainingNeg = along + half;
+    const yellow = remainingPos <= 600 || remainingNeg <= 600;
+    const col = yellow ? C.yellow : C.white;
+    for (const side of [-edge, edge]) {
+      const p = rwyPos(rwy, along, side, 0.45);
+      out.push({ ...p, color: col, r: 0.28 });
+    }
+  }
+}
+
+function clLamps(rwy: RunwayDef, out: Lamp[]) {
+  const step = 15;
+  const half = rwy.length / 2;
+  for (let along = -half + 8; along < half - 8; along += step) {
+    const remPos = half - along;
+    const remNeg = along + half;
+    const code = (rem: number) => {
+      if (rem <= 300) return C.red;
+      if (rem <= 900) {
+        const i = Math.round(along / step);
+        return i % 2 === 0 ? C.red : C.white;
+      }
+      return C.white;
+    };
+    const col = remPos <= 900 ? code(remPos) : remNeg <= 900 ? code(remNeg) : C.white;
+    const p = rwyPos(rwy, along, 0, 0.06);
+    out.push({ ...p, color: col, r: 0.16 });
+  }
+}
+
+function thresholdBar(rwy: RunwayDef, endName: string, out: Lamp[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const n = Math.round(rwy.width / 3);
+  for (let i = 0; i < n; i++) {
+    const across = -rwy.width / 2 + 1.5 + i * 3;
+    const p = rwyPos(rwy, thr, across, 0.4);
+    out.push({ ...p, color: C.green, r: 0.22 });
+  }
+  for (const side of [-1, 1]) {
+    for (let k = 1; k <= 5; k++) {
+      const p = rwyPos(rwy, thr, side * (rwy.width / 2 + 2 + k * 2.4), 0.4);
+      out.push({ ...p, color: C.green, r: 0.22 });
+    }
+  }
+  const phys = physicalAlong(rwy, end.sign);
+  for (let i = 0; i < n; i++) {
+    const across = -rwy.width / 2 + 1.5 + i * 3;
+    const p = rwyPos(rwy, phys, across, 0.4);
+    out.push({ ...p, color: C.red, r: 0.22 });
+  }
+  void ls;
+}
+
+function als(rwy: RunwayDef, endName: string, out: Lamp[], rabbit: Lamp[]) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const len = end.alsM;
+  const cat2 = end.cat === "CAT II";
+  for (let d = 30; d <= len; d += 30) {
+    const along = thr - ls * d;
+    if (cat2) {
+      for (const ac of [-6, -3, 0, 3, 6]) {
+        const p = rwyPos(rwy, along, ac, 0.55);
+        out.push({ ...p, color: C.white, r: 0.2 });
+      }
+      if (d <= 270) {
+        for (const side of [-1, 1]) {
+          for (const ac of [12, 15, 18]) {
+            const p = rwyPos(rwy, along, side * ac, 0.55);
+            out.push({ ...p, color: C.red, r: 0.18 });
+          }
+        }
+      }
+      if (d >= 300) {
+        const p = rwyPos(rwy, along, 0, 1.4);
+        rabbit.push({ ...p, color: C.white, r: 0.32 });
+      }
+    } else {
+      const p = rwyPos(rwy, along, 0, 0.55);
+      out.push({ ...p, color: C.white, r: 0.2 });
+      if (d === 300 || (len >= 540 && d === 150)) {
+        for (const ac of [-12, -8, -4, 4, 8, 12]) {
+          const q = rwyPos(rwy, along, ac, 0.55);
+          out.push({ ...q, color: C.white, r: 0.18 });
+        }
+      }
+    }
+  }
+}
+
+function tdz27(out: Lamp[]) {
+  const rwy = RWY_0927;
+  const end = rwy.ends["27"];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, "27");
+  for (let d = 30; d <= 900; d += 30) {
+    const along = thr + ls * d;
+    for (const side of [-1, 1]) {
+      for (const k of [0, 1, 2]) {
+        const p = rwyPos(rwy, along, side * (9 + k * 3.2), 0.06);
+        out.push({ ...p, color: C.white, r: 0.14 });
+      }
+    }
+  }
+}
+
+function taxiLamps(edge: Lamp[], cl: Lamp[]) {
+  for (const tw of [TAXI_N, TAXI_S]) {
+    for (let x = tw.x0; x <= tw.x1; x += 60) {
+      edge.push({ x, y: 0.35, z: tw.z - tw.width / 2, color: C.blue, r: 0.16 });
+      edge.push({ x, y: 0.35, z: tw.z + tw.width / 2, color: C.blue, r: 0.16 });
+    }
+    for (let x = tw.x0; x <= tw.x1; x += 30) {
+      cl.push({ x, y: 0.06, z: tw.z, color: C.green, r: 0.12 });
+    }
+  }
+  for (let z = TAXI_N1.z0; z <= TAXI_N1.z1; z += 20) {
+    edge.push({ x: TAXI_N1.x - TAXI_N1.width / 2, y: 0.35, z, color: C.blue, r: 0.16 });
+    edge.push({ x: TAXI_N1.x + TAXI_N1.width / 2, y: 0.35, z, color: C.blue, r: 0.16 });
+    cl.push({ x: TAXI_N1.x, y: 0.06, z, color: C.green, r: 0.12 });
+  }
+}
+
+function InstancedLamps({
+  items,
+  color,
+  pulse,
+}: {
+  items: Lamp[];
+  color: string;
+  pulse?: (t: number, i: number) => number;
+}) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const geo = useMemo(() => new THREE.SphereGeometry(1, 10, 8), []);
+  const mat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color,
+        toneMapped: false,
+      }),
+    [color],
+  );
+  const base = useMemo(() => items.map((it) => it.r ?? 0.2), [items]);
+
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dummy = new THREE.Object3D();
+    items.forEach((it, i) => {
+      dummy.position.set(it.x, it.y, it.z);
+      dummy.scale.setScalar(base[i]);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [items, base]);
+
+  useFrame(({ clock }) => {
+    if (!pulse || !ref.current) return;
+    const t = clock.getElapsedTime();
+    const dummy = new THREE.Object3D();
+    items.forEach((it, i) => {
+      const s = base[i] * pulse(t, i);
+      dummy.position.set(it.x, it.y, it.z);
+      dummy.scale.setScalar(s);
+      dummy.updateMatrix();
+      ref.current!.setMatrixAt(i, dummy.matrix);
+    });
+    ref.current.instanceMatrix.needsUpdate = true;
+  });
+
+  if (items.length === 0) return null;
+  return <instancedMesh ref={ref} args={[geo, mat, items.length]} frustumCulled={false} />;
+}
+
+function PapiUnit({
+  position,
+  headingDeg,
+  angleDeg,
+  offset,
+}: {
+  position: [number, number, number];
+  headingDeg: number;
+  angleDeg: number;
+  offset: number;
+}) {
+  const lens = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
+  const { fx, fz } = headingVec(headingDeg);
+  const approachX = -fx;
+  const approachZ = -fz;
+
+  useFrame(() => {
+    if (!lens.current) return;
+    const mat = lens.current.material as THREE.MeshBasicMaterial;
+    const dx = camera.position.x - position[0];
+    const dy = camera.position.y - position[1];
+    const dz = camera.position.z - position[2];
+    const along = dx * approachX + dz * approachZ;
+    const ground = Math.hypot(along, dx * fx + dz * fz) || 0.001;
+    const elev = (Math.atan2(dy, Math.max(ground, 1)) * 180) / Math.PI;
+    const white = elev > angleDeg;
+    mat.color.set(white ? "#f7f4ea" : "#e03a32");
+  });
+
+  const { rx, rz } = headingVec(headingDeg);
+  const yaw = Math.atan2(fx, fz);
+  void rx;
+  void rz;
+  void offset;
+
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      <mesh position={[0, -0.55, 0]}>
+        <boxGeometry args={[0.18, 1.1, 0.18]} />
+        <meshStandardMaterial color="#2a2c2e" roughness={0.8} />
+      </mesh>
+      <mesh>
+        <boxGeometry args={[1.15, 0.7, 0.9]} />
+        <meshStandardMaterial color="#1a1c1e" roughness={0.6} />
+      </mesh>
+      <mesh ref={lens} position={[0, 0.05, -0.48]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[0.28, 20]} />
+        <meshBasicMaterial color="#e03a32" toneMapped={false} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function PapiRow({ rwy, endName }: { rwy: RunwayDef; endName: string }) {
+  const end = rwy.ends[endName];
+  const ls = landingSign(end);
+  const thr = thresholdAlong(rwy, endName);
+  const along = thr + ls * 300;
+  const left = -ls;
+  const inboard = left * (rwy.width / 2 + 15);
+  const angles =
+    endName === "32"
+      ? [2.76, 3.09, 3.43, 3.76]
+      : [end.papiDeg - 0.5, end.papiDeg - 0.17, end.papiDeg + 0.17, end.papiDeg + 0.5];
+  return (
+    <group>
+      {angles.map((ang, i) => {
+        const across = inboard + left * i * 9;
+        const p = rwyPos(rwy, along, across, 1.15);
+        return (
+          <PapiUnit
+            key={i}
+            position={[p.x, p.y, p.z]}
+            headingDeg={end.heading}
+            angleDeg={ang}
+            offset={i}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
+export function Lights() {
+  const on = useLab((s) => s.layers.lights);
+  const lighting = useLab((s) => s.lighting);
+  const built = useMemo(() => {
+    const white: Lamp[] = [];
+    const yellow: Lamp[] = [];
+    const red: Lamp[] = [];
+    const green: Lamp[] = [];
+    const blue: Lamp[] = [];
+    const rabbit: Lamp[] = [];
+    const reil: Lamp[] = [];
+    const wig: Lamp[] = [];
+    for (const rwy of [RWY_0927, RWY_1432]) {
+      const tmp: Lamp[] = [];
+      edgeLamps(rwy, tmp);
+      for (const l of tmp) (l.color === C.yellow ? yellow : white).push(l);
+      if (rwy.id === "0927") clLamps(rwy, white);
+      for (const name of Object.keys(rwy.ends)) {
+        const t: Lamp[] = [];
+        thresholdBar(rwy, name, t);
+        for (const l of t) (l.color === C.green ? green : red).push(l);
+        const a: Lamp[] = [];
+        als(rwy, name, a, rabbit);
+        for (const l of a) (l.color === C.red ? red : white).push(l);
+      }
+    }
+    tdz27(white);
+    taxiLamps(blue, green);
+    const p27 = rwyPos(RWY_0927, thresholdAlong(RWY_0927, "27"), 0);
+    const { rx, rz } = headingVec(RWY_0927.heading);
+    reil.push({ x: p27.x + rx * 42, y: 1.6, z: p27.z + rz * 42, color: C.white, r: 0.38 });
+    reil.push({ x: p27.x - rx * 42, y: 1.6, z: p27.z - rz * 42, color: C.white, r: 0.38 });
+    wig.push({ x: TAXI_N1.x - 14, y: 1.2, z: -75, color: C.yellow, r: 0.3 });
+    wig.push({ x: TAXI_N1.x + 14, y: 1.2, z: -75, color: C.yellow, r: 0.3 });
+    return { white, yellow, red, green, blue, rabbit, reil, wig };
+  }, []);
+
+  if (!on) return null;
+  const night = lighting === "night" || lighting === "dusk";
+  const boost = night ? 1 : 0.85;
+
+  return (
+    <group>
+      <InstancedLamps items={built.white} color={C.white} pulse={() => boost} />
+      <InstancedLamps items={built.yellow} color={C.yellow} pulse={() => boost} />
+      <InstancedLamps items={built.red} color={C.red} pulse={() => boost} />
+      <InstancedLamps items={built.green} color={C.green} pulse={() => boost} />
+      <InstancedLamps items={built.blue} color={C.blue} pulse={() => boost} />
+      <InstancedLamps
+        items={built.rabbit}
+        color={C.white}
+        pulse={(t, i) => {
+          const n = built.rabbit.length || 1;
+          const k = Math.floor(t * 8) % n;
+          return i === n - 1 - k ? 2.4 : 0.15;
+        }}
+      />
+      <InstancedLamps
+        items={built.reil}
+        color={C.white}
+        pulse={(t) => (Math.sin(t * Math.PI * 2) > 0 ? 2.2 : 0.2)}
+      />
+      <InstancedLamps
+        items={built.wig}
+        color={C.yellow}
+        pulse={(t, i) => (Math.sin(t * Math.PI * 3 + i * Math.PI) > 0 ? 2 : 0.25)}
+      />
+      <PapiRow rwy={RWY_0927} endName="09" />
+      <PapiRow rwy={RWY_0927} endName="27" />
+      <PapiRow rwy={RWY_1432} endName="14" />
+      <PapiRow rwy={RWY_1432} endName="32" />
+    </group>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/fixtures.tsx
+================================================================================
+
+import { useFrame } from "@react-three/fiber";
+import { useMemo, useRef, type ReactNode } from "react";
+import * as THREE from "three";
+import { useLab } from "./store";
+import { TAXI_N1, RWY_0927, rwyPos, thresholdAlong } from "./world";
+
+function canvasTexture(draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void, w = 512, h = 256) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d")!;
+  draw(ctx, w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = 8;
+  t.needsUpdate = true;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function SignFace({
+  text,
+  bg,
+  fg,
+  width = 3.2,
+  height = 1.15,
+}: {
+  text: string;
+  bg: string;
+  fg: string;
+  width?: number;
+  height?: number;
+}) {
+  const tex = useMemo(
+    () =>
+      canvasTexture((ctx, w, h) => {
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = fg === "#f4f1ea" ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.25)";
+        ctx.lineWidth = 10;
+        ctx.strokeRect(8, 8, w - 16, h - 16);
+        ctx.fillStyle = fg;
+        ctx.font = "700 92px Barlow, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, w / 2, h / 2 + 4);
+      }),
+    [text, bg, fg],
+  );
+  return (
+    <mesh position={[0, 0, 0.06]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={tex} toneMapped={false} />
+    </mesh>
+  );
+}
+
+function SignPost({
+  position,
+  rotationY = 0,
+  children,
+}: {
+  position: [number, number, number];
+  rotationY?: number;
+  children: ReactNode;
+}) {
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <mesh position={[0, 1.05, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 2.1, 8]} />
+        <meshStandardMaterial color="#3a3d40" roughness={0.7} />
+      </mesh>
+      <group position={[0, 2.35, 0]}>{children}</group>
+    </group>
+  );
+}
+
+export function Signs() {
+  const on = useLab((s) => s.layers.signs);
+  const dtg = useMemo(() => {
+    const items: { n: number; x: number; z: number }[] = [];
+    for (let n = 1; n <= 10; n++) {
+      const along = RWY_0927.length / 2 - n * 304.8;
+      const p = rwyPos(RWY_0927, along, -38);
+      items.push({ n, x: p.x, z: p.z });
+    }
+    return items;
+  }, []);
+  if (!on) return null;
+  return (
+    <group>
+      <SignPost position={[TAXI_N1.x - 16, 0, -75]} rotationY={0}>
+        <mesh>
+          <boxGeometry args={[3.4, 1.25, 0.12]} />
+          <meshStandardMaterial color="#8b1e1a" />
+        </mesh>
+        <SignFace text="09-27" bg="#9b241c" fg="#f4f1ea" width={3.2} />
+      </SignPost>
+      <SignPost position={[1180, 0, -78]}>
+        <mesh>
+          <boxGeometry args={[4.6, 1.25, 0.12]} />
+          <meshStandardMaterial color="#8b1e1a" />
+        </mesh>
+        <SignFace text="CAT II 27" bg="#9b241c" fg="#f4f1ea" width={4.4} />
+      </SignPost>
+      <SignPost position={[620, 0, 118]} rotationY={Math.PI / 2}>
+        <mesh>
+          <boxGeometry args={[3.8, 1.25, 0.12]} />
+          <meshStandardMaterial color="#8b1e1a" />
+        </mesh>
+        <SignFace text="NO ENTRY" bg="#9b241c" fg="#f4f1ea" width={3.6} />
+      </SignPost>
+      <SignPost position={[TAXI_N1.x + 16, 0, -75]}>
+        <mesh>
+          <boxGeometry args={[2.6, 1.25, 0.12]} />
+          <meshStandardMaterial color="#111" />
+        </mesh>
+        <SignFace text="N1" bg="#111111" fg="#e0b43a" width={2.4} />
+      </SignPost>
+      <SignPost position={[TAXI_N1.x, 0, -112]} rotationY={Math.PI / 2}>
+        <mesh>
+          <boxGeometry args={[5.0, 1.25, 0.12]} />
+          <meshStandardMaterial color="#e0b43a" />
+        </mesh>
+        <SignFace text="N  ←    →  E" bg="#e0b43a" fg="#111111" width={4.8} />
+      </SignPost>
+      {dtg.map((s) => (
+        <SignPost key={s.n} position={[s.x, 0, s.z]} rotationY={Math.PI / 2}>
+          <mesh>
+            <boxGeometry args={[1.5, 1.5, 0.12]} />
+            <meshStandardMaterial color="#111" />
+          </mesh>
+          <SignFace text={String(s.n)} bg="#111111" fg="#f4f1ea" width={1.35} height={1.35} />
+        </SignPost>
+      ))}
+    </group>
+  );
+}
+
+function Hangar({ x, z, w, d, h }: { x: number; z: number; w: number; d: number; h: number }) {
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, h / 2, 0]} castShadow>
+        <boxGeometry args={[w, h, d]} />
+        <meshStandardMaterial color="#6d6f6c" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, h + 0.8, 0]} rotation={[0, 0, 0]}>
+        <boxGeometry args={[w + 1.2, 1.6, d + 1.2]} />
+        <meshStandardMaterial color="#5a5c59" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, h * 0.35, d / 2 + 0.05]}>
+        <boxGeometry args={[w * 0.55, h * 0.7, 0.2]} />
+        <meshStandardMaterial color="#2c3338" metalness={0.3} roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+function Jet({ position, headingDeg }: { position: [number, number, number]; headingDeg: number }) {
+  const yaw = -(headingDeg * Math.PI) / 180;
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      <mesh position={[0, 3.2, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[1.8, 1.6, 34, 12]} />
+        <meshStandardMaterial color="#d8d6d0" roughness={0.35} metalness={0.4} />
+      </mesh>
+      <mesh position={[16.2, 3.1, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <coneGeometry args={[1.6, 6.5, 12]} />
+        <meshStandardMaterial color="#d8d6d0" roughness={0.35} metalness={0.4} />
+      </mesh>
+      <mesh position={[1, 3.1, 0]}>
+        <boxGeometry args={[8, 0.35, 32]} />
+        <meshStandardMaterial color="#cfcbc3" roughness={0.4} metalness={0.35} />
+      </mesh>
+      <mesh position={[-14, 5.8, 0]}>
+        <boxGeometry args={[4.2, 5.5, 0.4]} />
+        <meshStandardMaterial color="#cfcbc3" roughness={0.4} />
+      </mesh>
+      <mesh position={[-14, 7.8, 0]}>
+        <boxGeometry args={[0.4, 0.4, 7]} />
+        <meshStandardMaterial color="#cfcbc3" />
+      </mesh>
+      <mesh position={[4, 2.2, 6.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[1.1, 1.1, 3.4, 10]} />
+        <meshStandardMaterial color="#4a4e52" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[4, 2.2, -6.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[1.1, 1.1, 3.4, 10]} />
+        <meshStandardMaterial color="#4a4e52" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[6, 4.4, 0]}>
+        <boxGeometry args={[8, 1.1, 2.4]} />
+        <meshStandardMaterial color="#2a3338" metalness={0.2} roughness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
+function Windsock() {
+  const sleeve = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!sleeve.current) return;
+    const t = clock.getElapsedTime();
+    sleeve.current.rotation.y = -0.7 + Math.sin(t * 0.6) * 0.18;
+    sleeve.current.rotation.z = Math.sin(t * 1.4) * 0.06;
+  });
+  return (
+    <group position={[-1500, 0, -70]}>
+      <mesh position={[0, 6, 0]}>
+        <cylinderGeometry args={[0.12, 0.16, 12, 8]} />
+        <meshStandardMaterial color="#4a4d50" />
+      </mesh>
+      <group ref={sleeve} position={[0, 11.4, 0]}>
+        <mesh position={[3.2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <coneGeometry args={[0.85, 6.4, 8, 1, true]} />
+          <meshStandardMaterial color="#d2651d" side={THREE.DoubleSide} roughness={0.7} />
+        </mesh>
+        <mesh position={[1.6, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.7, 0.85, 1.4, 8, 1, true]} />
+          <meshStandardMaterial color="#f4f1ea" side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+function Tower() {
+  return (
+    <group position={[-40, 0, 260]}>
+      <mesh position={[0, 18, 0]}>
+        <boxGeometry args={[9, 36, 9]} />
+        <meshStandardMaterial color="#8b8e88" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 40, 0]}>
+        <cylinderGeometry args={[3.2, 5.5, 8, 8]} />
+        <meshStandardMaterial color="#7a7d78" />
+      </mesh>
+      <mesh position={[0, 48, 0]}>
+        <cylinderGeometry args={[7.5, 6.2, 7, 8]} />
+        <meshStandardMaterial color="#d8d6d0" roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 48.2, 0]}>
+        <cylinderGeometry args={[6.8, 5.6, 4.2, 8]} />
+        <meshStandardMaterial color="#1c2a32" metalness={0.4} roughness={0.2} />
+      </mesh>
+      <mesh position={[0, 52.6, 0]}>
+        <cylinderGeometry args={[6.4, 7.2, 1.6, 8]} />
+        <meshStandardMaterial color="#4e5150" />
+      </mesh>
+      <mesh position={[0, 56, 0]}>
+        <boxGeometry args={[1.2, 6, 1.2]} />
+        <meshStandardMaterial color="#3a3d40" />
+      </mesh>
+    </group>
+  );
+}
+
+function Terminal() {
+  return (
+    <group position={[380, 0, 340]}>
+      <mesh position={[0, 14, 0]} castShadow>
+        <boxGeometry args={[420, 28, 140]} />
+        <meshStandardMaterial color="#cfcbc4" roughness={0.55} />
+      </mesh>
+      <mesh position={[0, 16, -72]}>
+        <boxGeometry args={[400, 18, 4]} />
+        <meshStandardMaterial color="#1c2a32" metalness={0.45} roughness={0.2} />
+      </mesh>
+      <mesh position={[-80, 22, 40]}>
+        <boxGeometry args={[180, 16, 70]} />
+        <meshStandardMaterial color="#b8b6b0" roughness={0.5} />
+      </mesh>
+      <mesh position={[140, 10, -20]}>
+        <boxGeometry args={[90, 20, 90]} />
+        <meshStandardMaterial color="#d4d1cb" />
+      </mesh>
+      <mesh position={[0, 29, 0]}>
+        <boxGeometry args={[428, 1.2, 148]} />
+        <meshStandardMaterial color="#5c5f5c" />
+      </mesh>
+      {[-160, -40, 80, 180].map((x) => (
+        <mesh key={x} position={[x, 7, -74]}>
+          <boxGeometry args={[28, 10, 8]} />
+          <meshStandardMaterial color="#2a3338" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function Buildings() {
+  const on = useLab((s) => s.layers.buildings);
+  if (!on) return null;
+  const t09 = thresholdAlong(RWY_0927, "09");
+  void t09;
+  return (
+    <group>
+      <Terminal />
+      <Tower />
+      <Hangar x={-180} z={-280} w={78} d={52} h={18} />
+      <Hangar x={-80} z={-280} w={70} d={52} h={16} />
+      <Hangar x={20} z={-280} w={86} d={56} h={20} />
+      <Windsock />
+      <Jet position={[160, 0, 168]} headingDeg={90} />
+      <Jet position={[220, 0, 168]} headingDeg={90} />
+      <Jet position={[290, 0, 176]} headingDeg={78} />
+    </group>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/systems.tsx
+================================================================================
+
+import { Html, Line, OrbitControls } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { FEATURE_BY_ID, nearestFeature, pickFeature } from "./catalog";
+import { input } from "./input";
+import { useLab } from "./store";
+import { INSPECT_START, WALK_START } from "./world";
+
+export function SceneLighting() {
+  const lighting = useLab((s) => s.lighting);
+  const { scene } = useThree();
+
+  useEffect(() => {
+    if (lighting === "day") {
+      scene.background = new THREE.Color("#87a0b4");
+      scene.fog = new THREE.Fog("#9aafbe", 1800, 7200);
+    } else if (lighting === "dusk") {
+      scene.background = new THREE.Color("#2a3340");
+      scene.fog = new THREE.Fog("#2a3340", 900, 5200);
+    } else {
+      scene.background = new THREE.Color("#050608");
+      scene.fog = new THREE.Fog("#050608", 700, 4200);
+    }
+  }, [lighting, scene]);
+
+  if (lighting === "day") {
+    return (
+      <>
+        <hemisphereLight args={["#d7e4ef", "#3e4a3a", 0.55]} />
+        <ambientLight intensity={0.28} />
+        <directionalLight position={[420, 620, -180]} intensity={1.35} color="#fff4e0" />
+      </>
+    );
+  }
+  if (lighting === "dusk") {
+    return (
+      <>
+        <hemisphereLight args={["#c47a4a", "#1a1e24", 0.28]} />
+        <ambientLight intensity={0.12} />
+        <directionalLight position={[-200, 80, 40]} intensity={0.45} color="#e08a4a" />
+      </>
+    );
+  }
+  return (
+    <>
+      <hemisphereLight args={["#1a2230", "#050608", 0.08]} />
+      <ambientLight intensity={0.045} />
+    </>
+  );
+}
+
+export function Ground() {
+  const lighting = useLab((s) => s.lighting);
+  const grass = lighting === "night" ? "#141a12" : lighting === "dusk" ? "#2a3324" : "#4a5a3a";
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
+        <planeGeometry args={[9000, 9000]} />
+        <meshLambertMaterial color={grass} />
+      </mesh>
+      <Pavement />
+    </group>
+  );
+}
+
+function Pavement() {
+  const asphalt = "#2b2d2f";
+  const taxi = "#323436";
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[3448, 60]} />
+        <meshLambertMaterial color={asphalt} />
+      </mesh>
+      <mesh position={[-480, -0.01, 0]} rotation={[0, Math.PI / 4, 0]} receiveShadow>
+        <boxGeometry args={[2871, 0.05, 45]} />
+        <meshLambertMaterial color={asphalt} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, -96]} receiveShadow>
+        <planeGeometry args={[3440, 23]} />
+        <meshLambertMaterial color={taxi} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[40, 0.006, 96]} receiveShadow>
+        <planeGeometry args={[3280, 23]} />
+        <meshLambertMaterial color={taxi} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1280, 0.007, -63]} receiveShadow>
+        <planeGeometry args={[23, 66]} />
+        <meshLambertMaterial color={taxi} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[220, 0.004, 168]} receiveShadow>
+        <planeGeometry args={[280, 70]} />
+        <meshLambertMaterial color={taxi} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-80, 0.004, -220]} receiveShadow>
+        <planeGeometry args={[320, 90]} />
+        <meshLambertMaterial color={taxi} />
+      </mesh>
+    </group>
+  );
+}
+
+export function InspectRig() {
+  const mode = useLab((s) => s.mode);
+  const selectedId = useLab((s) => s.selectedId);
+  const focusToken = useLab((s) => s.focusToken);
+  const controls = useRef<import("three-stdlib").OrbitControls | null>(null);
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (mode !== "inspect") return;
+    const f = selectedId ? FEATURE_BY_ID.get(selectedId) : null;
+    if (!f || !controls.current) {
+      if (!selectedId) {
+        camera.position.set(...INSPECT_START.position);
+        controls.current?.target.set(...INSPECT_START.target);
+      }
+      return;
+    }
+    const fp = f.footprint;
+    const dist = Math.max(40, Math.min(280, Math.max(fp.length, fp.width) * 0.9));
+    controls.current.target.set(fp.x, 0.5, fp.z);
+    camera.position.set(fp.x + dist * 0.35, dist * 0.55, fp.z + dist * 0.7);
+    controls.current.update();
+  }, [focusToken, mode, selectedId, camera]);
+
+  return (
+    <OrbitControls
+      ref={controls}
+      enabled={mode === "inspect"}
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={6}
+      maxDistance={4200}
+      maxPolarAngle={Math.PI / 2 - 0.03}
+      makeDefault={mode === "inspect"}
+    />
+  );
+}
+
+export function WalkRig() {
+  const mode = useLab((s) => s.mode);
+  const selectedId = useLab((s) => s.selectedId);
+  const focusToken = useLab((s) => s.focusToken);
+  const walkReset = useLab((s) => s.walkReset);
+  const layers = useLab((s) => s.layers);
+  const select = useLab((s) => s.select);
+  const setPointerLocked = useLab((s) => s.setPointerLocked);
+  const { camera, gl } = useThree();
+  const yaw = useRef(WALK_START.yaw);
+  const pitch = useRef(-0.04);
+  const pos = useRef(new THREE.Vector3(WALK_START.x, WALK_START.y, WALK_START.z));
+  const speed = useRef(0);
+  const locked = useRef(false);
+
+  useEffect(() => {
+    pos.current.set(WALK_START.x, WALK_START.y, WALK_START.z);
+    yaw.current = WALK_START.yaw;
+    pitch.current = -0.04;
+    speed.current = 0;
+  }, [walkReset]);
+
+  useEffect(() => {
+    if (mode !== "walk") return;
+    if (!focusToken || focusToken <= walkReset) return;
+    const f = selectedId ? FEATURE_BY_ID.get(selectedId) : null;
+    if (!f) return;
+    pos.current.set(f.footprint.x + 16, Math.max(pos.current.y, 1.7), f.footprint.z + 16);
+    const dx = f.footprint.x - pos.current.x;
+    const dz = f.footprint.z - pos.current.z;
+    yaw.current = Math.atan2(-dx, -dz);
+  }, [focusToken, mode, selectedId, walkReset]);
+
+  useEffect(() => {
+    window.__controlsTest = {
+      getYaw: () => yaw.current,
+      getSpeed: () => speed.current,
+      setKeys: (codes) => input.setInjected(codes),
+      getPosition: () => ({ x: pos.current.x, y: pos.current.y, z: pos.current.z }),
+    };
+    return () => {
+      delete window.__controlsTest;
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const onMove = (e: MouseEvent) => {
+      if (mode !== "walk" || !locked.current) return;
+      yaw.current -= e.movementX * 0.0022;
+      pitch.current -= e.movementY * 0.0022;
+      const lim = Math.PI / 2 - 0.04;
+      pitch.current = Math.max(-lim, Math.min(lim, pitch.current));
+    };
+    const onLock = () => {
+      locked.current = document.pointerLockElement === el;
+      setPointerLocked(locked.current);
+    };
+    const onClick = () => {
+      if (mode !== "walk") return;
+      if (!locked.current) {
+        const p = el.requestPointerLock();
+        if (p && typeof (p as Promise<void>).catch === "function") {
+          (p as Promise<void>).catch(() => {});
+        }
+      } else {
+        const ndc = new THREE.Vector2(0, 0);
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(ndc, camera);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const hit = new THREE.Vector3();
+        ray.ray.intersectPlane(plane, hit);
+        if (hit) {
+          const f = pickFeature(hit.x, hit.z, layers);
+          if (f) select(f.id);
+        }
+      }
+    };
+    el.addEventListener("mousemove", onMove);
+    document.addEventListener("pointerlockchange", onLock);
+    el.addEventListener("click", onClick);
+    return () => {
+      el.removeEventListener("mousemove", onMove);
+      document.removeEventListener("pointerlockchange", onLock);
+      el.removeEventListener("click", onClick);
+    };
+  }, [camera, gl, layers, mode, select, setPointerLocked]);
+
+  useFrame((_, dt) => {
+    const d = Math.min(dt, 0.1);
+    if (mode !== "walk") return;
+
+    const look = input.consumeLook();
+    if (!locked.current) {
+      yaw.current -= look.dx * 0.012;
+      pitch.current -= look.dy * 0.012;
+      const lim = Math.PI / 2 - 0.04;
+      pitch.current = Math.max(-lim, Math.min(lim, pitch.current));
+    }
+
+    if (input.consumeF()) {
+      const f = nearestFeature(pos.current.x, pos.current.z, layers);
+      if (f) select(f.id);
+    }
+
+    const sprint = input.has("ShiftLeft") || input.has("ShiftRight");
+    const crouch = input.has("KeyC");
+    const max = sprint ? 38 : 11;
+    let ax = 0;
+    let az = 0;
+    if (input.has("KeyW") || input.has("ArrowUp")) az += 1;
+    if (input.has("KeyS") || input.has("ArrowDown")) az -= 1;
+    if (input.has("KeyD") || input.has("ArrowRight")) ax += 1;
+    if (input.has("KeyA") || input.has("ArrowLeft")) ax -= 1;
+    ax += input.touchX;
+    az += input.touchY;
+    const len = Math.hypot(ax, az);
+    if (len > 1) {
+      ax /= len;
+      az /= len;
+    }
+
+    let vy = 0;
+    if (input.has("Space") || input.has("KeyE")) vy += 1;
+    if (input.has("ControlLeft") || input.has("ControlRight") || input.has("KeyQ")) vy -= 1;
+
+    const eye = crouch ? 1.05 : 1.7;
+    const fx = -Math.sin(yaw.current);
+    const fz = -Math.cos(yaw.current);
+    const rx = Math.cos(yaw.current);
+    const rz = -Math.sin(yaw.current);
+
+    const moving = len > 0.01;
+    const target = moving ? max : 0;
+    speed.current += (target - speed.current) * Math.min(1, d * 10);
+
+    const step = (moving ? max : 0) * d;
+    pos.current.x += (fx * az + rx * ax) * step;
+    pos.current.z += (fz * az + rz * ax) * step;
+    pos.current.y += vy * (sprint ? 28 : 12) * d;
+    if (vy === 0 && pos.current.y < eye + 0.02) pos.current.y = eye;
+    if (pos.current.y < 0.4) pos.current.y = 0.4;
+    if (pos.current.y > 900) pos.current.y = 900;
+
+    camera.position.copy(pos.current);
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw.current;
+    camera.rotation.x = pitch.current;
+  });
+
+  return null;
+}
+
+export function Picker() {
+  const mode = useLab((s) => s.mode);
+  const select = useLab((s) => s.select);
+  const layers = useLab((s) => s.layers);
+  const down = useRef({ x: 0, y: 0 });
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    if (mode !== "inspect") return;
+    const el = gl.domElement;
+    const onDown = (e: PointerEvent) => {
+      down.current = { x: e.clientX, y: e.clientY };
+    };
+    const onUp = (e: PointerEvent) => {
+      if (Math.hypot(e.clientX - down.current.x, e.clientY - down.current.y) > 7) return;
+      const rect = el.getBoundingClientRect();
+      const ndc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(ndc, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const hit = new THREE.Vector3();
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      const f = pickFeature(hit.x, hit.z, layers);
+      select(f ? f.id : null);
+    };
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointerup", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointerup", onUp);
+    };
+  }, [camera, gl, layers, mode, select]);
+
+  return null;
+}
+
+export function Gizmo() {
+  const selectedId = useLab((s) => s.selectedId);
+  const f = selectedId ? FEATURE_BY_ID.get(selectedId) : null;
+  const pts = useMemo(() => {
+    if (!f) return null;
+    const r = f.footprint;
+    const h = (r.headingDeg * Math.PI) / 180;
+    const fx = Math.sin(h);
+    const fz = -Math.cos(h);
+    const rx = Math.cos(h);
+    const rz = Math.sin(h);
+    const hl = r.length / 2;
+    const hw = r.width / 2;
+    const corner = (a: number, b: number): [number, number, number] => [
+      r.x + fx * a + rx * b,
+      0.12,
+      r.z + fz * a + rz * b,
+    ];
+    return {
+      rect: [corner(-hl, -hw), corner(hl, -hw), corner(hl, hw), corner(-hl, hw), corner(-hl, -hw)],
+      lenA: corner(-hl, -hw - 4),
+      lenB: corner(hl, -hw - 4),
+      widA: corner(-hl - 4, -hw),
+      widB: corner(-hl - 4, hw),
+      lenMid: corner(0, -hw - 4),
+      widMid: corner(-hl - 4, 0),
+      len: r.length,
+      wid: r.width,
+    };
+  }, [f]);
+
+  if (!f || !pts) return null;
+  const yaw = -(f.footprint.headingDeg * Math.PI) / 180 + Math.PI / 2;
+
+  return (
+    <group>
+      <Line points={pts.rect} color="#f4f1ea" lineWidth={1.5} />
+      <mesh position={[f.footprint.x, 0.09, f.footprint.z]} rotation={[0, yaw, 0]}>
+        <boxGeometry args={[Math.max(f.footprint.width, 2), 0.02, Math.max(f.footprint.length, 2)]} />
+        <meshBasicMaterial color="#f4f1ea" transparent opacity={0.12} depthWrite={false} />
+      </mesh>
+      <Html position={pts.lenMid} center sprite distanceFactor={80} style={{ pointerEvents: "none" }}>
+        <div className="rounded-sm border border-border bg-panel/90 px-2 py-0.5 font-mono text-[11px] text-fg whitespace-nowrap">
+          {fmt(pts.len)} m
+        </div>
+      </Html>
+      <Html position={pts.widMid} center sprite distanceFactor={80} style={{ pointerEvents: "none" }}>
+        <div className="rounded-sm border border-border bg-panel/90 px-2 py-0.5 font-mono text-[11px] text-fg whitespace-nowrap">
+          {fmt(pts.wid)} m
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function fmt(n: number) {
+  return n >= 100 ? n.toFixed(0) : n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+
+================================================================================
+FILE: src/lab/AirfieldCanvas.tsx
+================================================================================
+
+import { Canvas } from "@react-three/fiber";
+import { Buildings, Signs } from "./fixtures";
+import { Lights } from "./lights";
+import { Markings } from "./markings";
+import { Gizmo, Ground, InspectRig, Picker, SceneLighting, WalkRig } from "./systems";
+import { INSPECT_START } from "./world";
+
+export function AirfieldCanvas() {
+  return (
+    <Canvas
+      camera={{
+        position: INSPECT_START.position,
+        fov: 55,
+        near: 0.15,
+        far: 14000,
+      }}
+      dpr={[1, 1.5]}
+      gl={{
+        antialias: true,
+        logarithmicDepthBuffer: true,
+        powerPreference: "high-performance",
+        alpha: false,
+      }}
+      onCreated={({ gl }) => {
+        gl.setClearColor("#0c0d0e");
+      }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        touchAction: "none",
+        background: "#0c0d0e",
+      }}
+    >
+      <SceneLighting />
+      <Ground />
+      <Markings />
+      <Lights />
+      <Signs />
+      <Buildings />
+      <Gizmo />
+      <InspectRig />
+      <WalkRig />
+      <Picker />
+    </Canvas>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/App.tsx
+================================================================================
+
+import { useEffect, useState, type ComponentType } from "react";
+import { input } from "./input";
+import { useLab } from "./store";
+import { HUD } from "./ui/HUD";
+import { StartScreen } from "./ui/StartScreen";
+import { TouchControls } from "./ui/TouchControls";
+
+export function LabApp() {
+  const [Canvas, setCanvas] = useState<ComponentType | null>(null);
+  const mode = useLab((s) => s.mode);
+
+  useEffect(() => {
+    void import("./AirfieldCanvas").then((m) => setCanvas(() => m.AirfieldCanvas));
+  }, []);
+
+  useEffect(() => input.attach(), []);
+
+  return (
+    <main className="relative h-[100dvh] min-h-[100dvh] overflow-hidden bg-bg text-fg">
+      {Canvas ? <Canvas /> : <div className="absolute inset-0 bg-bg" />}
+      {mode === "start" && <StartScreen />}
+      <HUD />
+      <TouchControls />
+    </main>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/ui/StartScreen.tsx
+================================================================================
+
+import { useLab } from "../store";
+
+export function StartScreen() {
+  const enter = useLab((s) => s.enter);
+  const setHelpOpen = useLab((s) => s.setHelpOpen);
+
+  return (
+    <div className="absolute inset-0 z-20 flex items-center justify-center bg-bg/92 px-5">
+      <div className="w-full max-w-lg">
+        <p className="font-mono text-[11px] tracking-[0.28em] text-muted uppercase">
+          VABB · BOM · Mumbai
+        </p>
+        <h1 className="mt-3 font-sans text-5xl font-semibold tracking-[-0.04em] text-fg sm:text-6xl">
+          Runway Lab
+        </h1>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
+          Chhatrapati Shivaji Maharaj International Airport. An educational schematic of ICAO Annex 14
+          markings, lights and signs on published VABB dimensions. Not a photoreal twin. Not for real
+          navigation.
+        </p>
+
+        <Schematic className="mt-8 mb-8 h-28 w-full text-fg/70" />
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => enter("inspect")}
+            className="h-12 flex-1 rounded-lg bg-accent px-5 text-sm font-semibold text-accent-fg transition-transform duration-150 hover:brightness-95 active:scale-[0.98]"
+          >
+            Enter airfield
+          </button>
+          <button
+            type="button"
+            onClick={() => enter("walk")}
+            className="h-12 flex-1 rounded-lg border border-border bg-surface px-5 text-sm font-semibold text-fg transition-transform duration-150 hover:bg-surface-2 active:scale-[0.98]"
+          >
+            Walk mode
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          className="mt-4 text-left text-xs text-subtle underline-offset-4 hover:text-muted hover:underline"
+        >
+          Briefing — Annex 14, dimensions, disclaimer
+        </button>
+        <a
+          href="/vabb-runway-lab.zip"
+          download="vabb-runway-lab.zip"
+          className="mt-3 inline-block text-xs text-muted underline-offset-4 hover:text-fg hover:underline"
+        >
+          Download source (.zip)
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Schematic({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 480 120" className={className} aria-hidden="true">
+      <rect x="20" y="52" width="440" height="10" fill="currentColor" opacity="0.85" />
+      <rect
+        x="168"
+        y="8"
+        width="300"
+        height="8"
+        fill="currentColor"
+        opacity="0.7"
+        transform="rotate(45 180 60)"
+      />
+      <rect x="20" y="40" width="440" height="1.2" fill="currentColor" opacity="0.25" />
+      <rect x="20" y="72" width="440" height="1.2" fill="currentColor" opacity="0.25" />
+      <circle cx="48" cy="57" r="3" fill="currentColor" />
+      <text x="56" y="44" fill="currentColor" fontSize="9" fontFamily="IBM Plex Mono, monospace">
+        09
+      </text>
+      <text x="430" y="44" fill="currentColor" fontSize="9" fontFamily="IBM Plex Mono, monospace">
+        27
+      </text>
+      <text x="150" y="18" fill="currentColor" fontSize="9" fontFamily="IBM Plex Mono, monospace">
+        14
+      </text>
+      <text x="330" y="112" fill="currentColor" fontSize="9" fontFamily="IBM Plex Mono, monospace">
+        32
+      </text>
+    </svg>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/ui/HUD.tsx
+================================================================================
+
+import type { ReactNode } from "react";
+import {
+  BookOpen,
+  Building2,
+  Eye,
+  HelpCircle,
+  Layers,
+  Lightbulb,
+  Moon,
+  PersonStanding,
+  Signpost,
+  Sun,
+  Sunset,
+  X,
+} from "lucide-react";
+import { FEATURES, FEATURE_BY_ID, type FeatureKind } from "../catalog";
+import { useLab, type Layers as LayerState, type Lighting } from "../store";
+import { cn } from "@/lib/utils";
+
+const LAYER_KEY: Record<FeatureKind, keyof LayerState> = {
+  marking: "markings",
+  light: "lights",
+  sign: "signs",
+  building: "buildings",
+};
+
+const KINDS: { id: FeatureKind; label: string; icon: typeof Layers }[] = [
+  { id: "marking", label: "Markings", icon: Layers },
+  { id: "light", label: "Lights", icon: Lightbulb },
+  { id: "sign", label: "Signs", icon: Signpost },
+  { id: "building", label: "Buildings", icon: Building2 },
+];
+
+export function HUD() {
+  const mode = useLab((s) => s.mode);
+  const lighting = useLab((s) => s.lighting);
+  const setLighting = useLab((s) => s.setLighting);
+  const setMode = useLab((s) => s.setMode);
+  const layers = useLab((s) => s.layers);
+  const toggleLayer = useLab((s) => s.toggleLayer);
+  const catalogOpen = useLab((s) => s.catalogOpen);
+  const setCatalogOpen = useLab((s) => s.setCatalogOpen);
+  const helpOpen = useLab((s) => s.helpOpen);
+  const setHelpOpen = useLab((s) => s.setHelpOpen);
+  const selectedId = useLab((s) => s.selectedId);
+  const select = useLab((s) => s.select);
+  const pointerLocked = useLab((s) => s.pointerLocked);
+  const selected = selectedId ? FEATURE_BY_ID.get(selectedId) : null;
+
+  if (mode === "start") {
+    return helpOpen ? <HelpModal /> : null;
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 flex flex-col">
+      <header className="pointer-events-auto flex items-start justify-between gap-3 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
+        <div className="rounded-lg border border-border bg-panel/90 px-3 py-2 backdrop-blur-sm">
+          <p className="font-mono text-[10px] tracking-[0.22em] text-muted uppercase">VABB · BOM</p>
+          <p className="text-sm font-semibold tracking-tight">Runway Lab</p>
+        </div>
+        <div className="flex flex-wrap justify-end gap-1.5">
+          <Seg
+            value={mode}
+            onChange={(v) => setMode(v)}
+            options={[
+              { id: "inspect", label: "Inspect", icon: Eye },
+              { id: "walk", label: "Walk", icon: PersonStanding },
+            ]}
+          />
+          <Seg
+            value={lighting}
+            onChange={(v) => setLighting(v as Lighting)}
+            options={[
+              { id: "day", label: "Day", icon: Sun },
+              { id: "dusk", label: "Dusk", icon: Sunset },
+              { id: "night", label: "Night", icon: Moon },
+            ]}
+          />
+        </div>
+      </header>
+
+      {mode === "walk" && (
+        <div className="pointer-events-none absolute top-1/2 left-1/2 z-0 size-4 -translate-x-1/2 -translate-y-1/2" aria-hidden>
+          <div className="absolute top-0 left-1/2 h-full w-px bg-fg/80" />
+          <div className="absolute top-1/2 left-0 h-px w-full bg-fg/80" />
+        </div>
+      )}
+
+      <div className="relative flex min-h-0 flex-1">
+        {catalogOpen && (
+          <aside className="pointer-events-auto absolute top-0 bottom-2 left-3 z-20 flex w-[min(18rem,calc(100%-1.5rem))] max-h-full flex-col overflow-hidden rounded-xl border border-border bg-panel/94 backdrop-blur-sm md:static md:mb-2 md:ml-3 md:w-72">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2">
+              <p className="font-mono text-[10px] tracking-[0.18em] text-muted uppercase">Catalog</p>
+              <button type="button" className="p-1 text-subtle hover:text-fg" onClick={() => setCatalogOpen(false)} aria-label="Close catalog">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {KINDS.map((k) => (
+                <div key={k.id} className="mb-3">
+                  <p className="px-2 pb-1 font-mono text-[10px] tracking-[0.16em] text-subtle uppercase">{k.label}</p>
+                  {FEATURES.filter((f) => f.kind === k.id).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => useLab.getState().focusFeature(f)}
+                      className={cn(
+                        "mb-0.5 block w-full rounded-md px-2 py-1.5 text-left text-[13px] leading-snug transition-colors",
+                        selectedId === f.id ? "bg-accent text-accent-fg" : "text-fg hover:bg-surface-2",
+                      )}
+                    >
+                      {f.title}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        <div className="flex-1" />
+
+        {selected && (
+          <article className="pointer-events-auto absolute right-3 bottom-2 top-0 z-20 w-[min(100%-1.5rem,22rem)] overflow-y-auto rounded-xl border border-border bg-panel/94 p-4 backdrop-blur-sm md:static md:mb-2 md:mr-3 md:max-h-full">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.18em] text-muted uppercase">{selected.kind}</p>
+                <h2 className="text-base font-semibold leading-snug">{selected.title}</h2>
+              </div>
+              <button type="button" className="p-1 text-subtle hover:text-fg" onClick={() => select(null)} aria-label="Close panel">
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="mt-2 text-[12px] text-muted">{selected.location}</p>
+            <p className="mt-3 text-[13px] leading-relaxed text-fg">{selected.purpose}</p>
+            <p className="mt-3 font-mono text-[11px] text-ok">{selected.icao}</p>
+            <table className="mt-3 w-full text-[12px]">
+              <tbody>
+                {selected.dimensions.map((row) => (
+                  <tr key={row.label} className="border-t border-border">
+                    <td className="py-1.5 pr-3 text-muted">{row.label}</td>
+                    <td className="py-1.5 text-right font-mono tabular-nums">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-3 text-[12px] leading-relaxed text-muted">{selected.notes}</p>
+          </article>
+        )}
+      </div>
+
+      <footer className="pointer-events-auto flex flex-wrap items-end justify-between gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
+        <div className="flex flex-wrap gap-1.5">
+          {!catalogOpen && (
+            <Chip onClick={() => setCatalogOpen(true)}>
+              <BookOpen className="size-3.5" /> Catalog
+            </Chip>
+          )}
+          {KINDS.map((k) => (
+            <Chip key={k.id} active={layers[LAYER_KEY[k.id]]} onClick={() => toggleLayer(LAYER_KEY[k.id])}>
+              <k.icon className="size-3.5" />
+              <span className="hidden sm:inline">{k.label}</span>
+            </Chip>
+          ))}
+          <Chip onClick={() => setHelpOpen(true)}>
+            <HelpCircle className="size-3.5" /> Help
+          </Chip>
+        </div>
+        <p className="max-w-xl font-mono text-[10px] leading-relaxed text-subtle sm:text-[11px]">
+          {mode === "inspect"
+            ? "Drag orbit · scroll zoom · click a marking, light or sign"
+            : pointerLocked
+              ? "WASD move · Shift sprint · Q/E altitude · Space up · Ctrl down · C crouch · F nearest · Esc unlock"
+              : "Tap the airfield to look · WASD or joystick to walk · F inspect nearest"}
+        </p>
+      </footer>
+
+      {helpOpen && <HelpModal />}
+    </div>
+  );
+}
+
+function Seg<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { id: T; label: string; icon: typeof Eye }[];
+}) {
+  return (
+    <div className="flex rounded-lg border border-border bg-panel/90 p-0.5 backdrop-blur-sm">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={cn(
+            "flex h-9 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium",
+            value === o.id ? "bg-accent text-accent-fg" : "text-muted hover:text-fg",
+          )}
+        >
+          <o.icon className="size-3.5" />
+          <span className="hidden sm:inline">{o.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Chip({
+  children,
+  onClick,
+  active,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium",
+        active === false ? "border-border bg-panel/70 text-subtle" : "border-border bg-panel/90 text-fg",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function HelpModal() {
+  const setHelpOpen = useLab((s) => s.setHelpOpen);
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-bg/70 px-4">
+      <div className="max-h-[min(36rem,88vh)] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-surface p-5">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Briefing</h2>
+          <button type="button" onClick={() => setHelpOpen(false)} className="p-1 text-subtle hover:text-fg" aria-label="Close">
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="mt-3 space-y-3 text-[13px] leading-relaxed text-muted">
+          <p>
+            This lab follows published dimensions for Chhatrapati Shivaji Maharaj International Airport
+            (ICAO VABB, IATA BOM) and the visual-aid geometry in ICAO Annex 14 Volume I. It is an
+            educational schematic — not a photoreal digital twin, not an AIP substitute, and not for
+            real flight or ground navigation.
+          </p>
+          <p>
+            World scale is 1 metre per unit, +Y up, −Z north. RWY 09/27 is 3448 × 60 m (CAT I on 09,
+            CAT II on 27). RWY 14/32 is 2871 × 45 m. PAPI colours respond to your camera elevation
+            angle: two white and two red means on slope.
+          </p>
+          <p>
+            Inspect: drag to orbit, scroll to zoom, click any marking, light or sign. Walk: start at
+            the RWY 09 threshold looking east. WASD move, A/D strafe, Shift sprint, mouse-look after
+            click, Q/E altitude, Space up, Ctrl down, C crouch, F inspect nearest. On a phone, use the
+            left joystick and drag the right side to look.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: src/lab/ui/TouchControls.tsx
+================================================================================
+
+import { useEffect, useRef } from "react";
+import { input } from "../input";
+import { useLab } from "../store";
+
+export function TouchControls() {
+  const mode = useLab((s) => s.mode);
+  if (mode !== "walk") return null;
+  return (
+    <>
+      <Joystick />
+      <LookPad />
+    </>
+  );
+}
+
+function Joystick() {
+  const base = useRef<HTMLDivElement>(null);
+  const knob = useRef<HTMLDivElement>(null);
+  const pid = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = base.current;
+    if (!el) return;
+    const setFrom = (clientX: number, clientY: number) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const max = r.width / 2 - 8;
+      const m = Math.hypot(dx, dy);
+      if (m > max) {
+        dx = (dx / m) * max;
+        dy = (dy / m) * max;
+      }
+      input.touchX = dx / max;
+      input.touchY = -dy / max;
+      if (knob.current) {
+        knob.current.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    };
+    const clear = () => {
+      pid.current = null;
+      input.touchX = 0;
+      input.touchY = 0;
+      if (knob.current) knob.current.style.transform = "translate(0,0)";
+    };
+    const down = (e: PointerEvent) => {
+      pid.current = e.pointerId;
+      el.setPointerCapture(e.pointerId);
+      setFrom(e.clientX, e.clientY);
+    };
+    const move = (e: PointerEvent) => {
+      if (pid.current !== e.pointerId) return;
+      setFrom(e.clientX, e.clientY);
+    };
+    const up = (e: PointerEvent) => {
+      if (pid.current !== e.pointerId) return;
+      clear();
+    };
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      clear();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={base}
+      className="pointer-events-auto absolute bottom-24 left-4 z-20 size-[7.5rem] rounded-full border border-border bg-panel/50 md:hidden"
+      style={{ touchAction: "none" }}
+      aria-label="Move"
+    >
+      <div
+        ref={knob}
+        className="absolute top-1/2 left-1/2 size-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent/40 bg-accent/80"
+      />
+    </div>
+  );
+}
+
+function LookPad() {
+  const pid = useRef<number | null>(null);
+  const last = useRef({ x: 0, y: 0 });
+
+  return (
+    <div
+      className="pointer-events-auto absolute inset-y-24 right-0 z-10 w-1/2 md:hidden"
+      style={{ touchAction: "none" }}
+      aria-label="Look"
+      onPointerDown={(e) => {
+        pid.current = e.pointerId;
+        last.current = { x: e.clientX, y: e.clientY };
+        (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (pid.current !== e.pointerId) return;
+        input.lookDx += e.clientX - last.current.x;
+        input.lookDy += e.clientY - last.current.y;
+        last.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerUp={() => {
+        pid.current = null;
+      }}
+      onPointerCancel={() => {
+        pid.current = null;
+      }}
+    />
+  );
+}
